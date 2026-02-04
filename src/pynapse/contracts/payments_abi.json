@@ -1,0 +1,205 @@
+[
+	{
+		"type": "function",
+		"name": "accounts",
+		"inputs": [
+			{"name": "token", "type": "address"},
+			{"name": "owner", "type": "address"}
+		],
+		"outputs": [
+			{"name": "funds", "type": "uint256"},
+			{"name": "lockupCurrent", "type": "uint256"},
+			{"name": "lockupRate", "type": "uint256"},
+			{"name": "lockupLastSettledAt", "type": "uint256"}
+		],
+		"stateMutability": "view"
+	},
+	{
+		"type": "function",
+		"name": "getAccountInfoIfSettled",
+		"inputs": [
+			{"name": "token", "type": "address"},
+			{"name": "owner", "type": "address"}
+		],
+		"outputs": [
+			{"name": "fundedUntilEpoch", "type": "uint256"},
+			{"name": "currentFunds", "type": "uint256"},
+			{"name": "availableFunds", "type": "uint256"},
+			{"name": "currentLockupRate", "type": "uint256"}
+		],
+		"stateMutability": "view"
+	},
+	{
+		"type": "function",
+		"name": "deposit",
+		"inputs": [
+			{"name": "token", "type": "address"},
+			{"name": "to", "type": "address"},
+			{"name": "amount", "type": "uint256"}
+		],
+		"outputs": [],
+		"stateMutability": "payable"
+	},
+	{
+		"type": "function",
+		"name": "withdraw",
+		"inputs": [
+			{"name": "token", "type": "address"},
+			{"name": "amount", "type": "uint256"}
+		],
+		"outputs": [],
+		"stateMutability": "nonpayable"
+	},
+	{
+		"type": "function",
+		"name": "withdrawTo",
+		"inputs": [
+			{"name": "token", "type": "address"},
+			{"name": "to", "type": "address"},
+			{"name": "amount", "type": "uint256"}
+		],
+		"outputs": [],
+		"stateMutability": "nonpayable"
+	},
+	{
+		"type": "function",
+		"name": "setOperatorApproval",
+		"inputs": [
+			{"name": "token", "type": "address"},
+			{"name": "operator", "type": "address"},
+			{"name": "approved", "type": "bool"},
+			{"name": "rateAllowance", "type": "uint256"},
+			{"name": "lockupAllowance", "type": "uint256"},
+			{"name": "maxLockupPeriod", "type": "uint256"}
+		],
+		"outputs": [],
+		"stateMutability": "nonpayable"
+	},
+	{
+		"type": "function",
+		"name": "operatorApprovals",
+		"inputs": [
+			{"name": "token", "type": "address"},
+			{"name": "client", "type": "address"},
+			{"name": "operator", "type": "address"}
+		],
+		"outputs": [
+			{"name": "isApproved", "type": "bool"},
+			{"name": "rateAllowance", "type": "uint256"},
+			{"name": "lockupAllowance", "type": "uint256"},
+			{"name": "rateUsed", "type": "uint256"},
+			{"name": "lockupUsed", "type": "uint256"},
+			{"name": "maxLockupPeriod", "type": "uint256"}
+		],
+		"stateMutability": "view"
+	},
+	{
+		"type": "function",
+		"name": "getRail",
+		"inputs": [
+			{"name": "railId", "type": "uint256"}
+		],
+		"outputs": [
+			{
+				"name": "",
+				"type": "tuple",
+				"components": [
+					{"name": "token", "type": "address"},
+					{"name": "from", "type": "address"},
+					{"name": "to", "type": "address"},
+					{"name": "operator", "type": "address"},
+					{"name": "validator", "type": "address"},
+					{"name": "paymentRate", "type": "uint256"},
+					{"name": "lockupPeriod", "type": "uint256"},
+					{"name": "lockupFixed", "type": "uint256"},
+					{"name": "settledUpTo", "type": "uint256"},
+					{"name": "endEpoch", "type": "uint256"},
+					{"name": "commissionRateBps", "type": "uint256"},
+					{"name": "serviceFeeRecipient", "type": "address"}
+				]
+			}
+		],
+		"stateMutability": "view"
+	},
+	{
+		"type": "function",
+		"name": "getRailsForPayerAndToken",
+		"inputs": [
+			{"name": "payer", "type": "address"},
+			{"name": "token", "type": "address"},
+			{"name": "offset", "type": "uint256"},
+			{"name": "limit", "type": "uint256"}
+		],
+		"outputs": [
+			{
+				"name": "results",
+				"type": "tuple[]",
+				"components": [
+					{"name": "railId", "type": "uint256"},
+					{"name": "isTerminated", "type": "bool"},
+					{"name": "endEpoch", "type": "uint256"}
+				]
+			},
+			{"name": "nextOffset", "type": "uint256"},
+			{"name": "total", "type": "uint256"}
+		],
+		"stateMutability": "view"
+	},
+	{
+		"type": "function",
+		"name": "getRailsForPayeeAndToken",
+		"inputs": [
+			{"name": "payee", "type": "address"},
+			{"name": "token", "type": "address"},
+			{"name": "offset", "type": "uint256"},
+			{"name": "limit", "type": "uint256"}
+		],
+		"outputs": [
+			{
+				"name": "results",
+				"type": "tuple[]",
+				"components": [
+					{"name": "railId", "type": "uint256"},
+					{"name": "isTerminated", "type": "bool"},
+					{"name": "endEpoch", "type": "uint256"}
+				]
+			},
+			{"name": "nextOffset", "type": "uint256"},
+			{"name": "total", "type": "uint256"}
+		],
+		"stateMutability": "view"
+	},
+	{
+		"type": "function",
+		"name": "settleRail",
+		"inputs": [
+			{"name": "railId", "type": "uint256"},
+			{"name": "untilEpoch", "type": "uint256"}
+		],
+		"outputs": [
+			{"name": "totalSettledAmount", "type": "uint256"},
+			{"name": "totalNetPayeeAmount", "type": "uint256"},
+			{"name": "totalOperatorCommission", "type": "uint256"},
+			{"name": "totalNetworkFee", "type": "uint256"},
+			{"name": "finalSettledEpoch", "type": "uint256"},
+			{"name": "note", "type": "string"}
+		],
+		"stateMutability": "payable"
+	},
+	{
+		"type": "function",
+		"name": "settleTerminatedRailWithoutValidation",
+		"inputs": [
+			{"name": "railId", "type": "uint256"}
+		],
+		"outputs": [
+			{"name": "totalSettledAmount", "type": "uint256"},
+			{"name": "totalNetPayeeAmount", "type": "uint256"},
+			{"name": "totalOperatorCommission", "type": "uint256"},
+			{"name": "totalNetworkFee", "type": "uint256"},
+			{"name": "finalSettledEpoch", "type": "uint256"},
+			{"name": "note", "type": "string"}
+		],
+		"stateMutability": "nonpayable"
+	}
+]
