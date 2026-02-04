@@ -9,6 +9,7 @@ from web3 import AsyncWeb3, Web3
 from pynapse.core.chains import CALIBRATION, MAINNET, Chain, as_chain
 from pynapse.evm import AsyncEVMClient, SyncEVMClient
 from pynapse.payments import AsyncPaymentsService, SyncPaymentsService
+from pynapse.session import AsyncSessionKeyRegistry, SyncSessionKeyRegistry
 from pynapse.storage import StorageManager
 from pynapse.sp_registry import AsyncSPRegistryService, SyncSPRegistryService
 from pynapse.warm_storage import AsyncWarmStorageService, SyncWarmStorageService
@@ -24,6 +25,7 @@ class Synapse:
         self._providers = SyncSPRegistryService(web3, chain, private_key)
         self._warm_storage = SyncWarmStorageService(web3, chain, private_key)
         self._storage = StorageManager(chain, private_key)
+        self._session_registry = SyncSessionKeyRegistry(web3, chain, private_key)
 
     @classmethod
     def create(cls, rpc_url: str, chain: Chain | str | int = CALIBRATION, private_key: Optional[str] = None) -> "Synapse":
@@ -62,6 +64,10 @@ class Synapse:
     def storage(self) -> StorageManager:
         return self._storage
 
+    @property
+    def session_registry(self) -> SyncSessionKeyRegistry:
+        return self._session_registry
+
 
 class AsyncSynapse:
     def __init__(self, web3: AsyncWeb3, chain: Chain, account_address: str, private_key: Optional[str] = None) -> None:
@@ -73,6 +79,7 @@ class AsyncSynapse:
         self._providers = AsyncSPRegistryService(web3, chain, private_key)
         self._warm_storage = AsyncWarmStorageService(web3, chain, private_key)
         self._storage = StorageManager(chain, private_key)
+        self._session_registry = AsyncSessionKeyRegistry(web3, chain, private_key)
 
     @classmethod
     async def create(
@@ -112,3 +119,7 @@ class AsyncSynapse:
     @property
     def storage(self) -> StorageManager:
         return self._storage
+
+    @property
+    def session_registry(self) -> AsyncSessionKeyRegistry:
+        return self._session_registry
