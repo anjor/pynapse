@@ -93,6 +93,28 @@ class SyncSPRegistryService:
             providers.append(self._convert_provider_with_product(item))
         return providers, bool(result[1])
 
+    def get_all_active_providers(self) -> List[ProviderInfo]:
+        providers: List[ProviderInfo] = []
+        limit = 50
+        offset = 0
+        has_more = True
+        while has_more:
+            result = self._contract.functions.getAllActiveProviders(offset, limit).call()
+            for info in result[0]:
+                providers.append(
+                    ProviderInfo(
+                        provider_id=int(info[0]),
+                        service_provider=info[1][0],
+                        payee=info[1][1],
+                        name=info[1][2],
+                        description=info[1][3],
+                        is_active=info[1][4],
+                    )
+                )
+            has_more = bool(result[1])
+            offset += limit
+        return providers
+
     def register_provider(self, account: str, info: ProviderRegistrationInfo) -> str:
         if not self._private_key:
             raise ValueError("private_key required for register_provider")
@@ -219,6 +241,28 @@ class AsyncSPRegistryService:
         for item in result[0]:
             providers.append(self._convert_provider_with_product(item))
         return providers, bool(result[1])
+
+    async def get_all_active_providers(self) -> List[ProviderInfo]:
+        providers: List[ProviderInfo] = []
+        limit = 50
+        offset = 0
+        has_more = True
+        while has_more:
+            result = await self._contract.functions.getAllActiveProviders(offset, limit).call()
+            for info in result[0]:
+                providers.append(
+                    ProviderInfo(
+                        provider_id=int(info[0]),
+                        service_provider=info[1][0],
+                        payee=info[1][1],
+                        name=info[1][2],
+                        description=info[1][3],
+                        is_active=info[1][4],
+                    )
+                )
+            has_more = bool(result[1])
+            offset += limit
+        return providers
 
     async def register_provider(self, account: str, info: ProviderRegistrationInfo) -> str:
         if not self._private_key:

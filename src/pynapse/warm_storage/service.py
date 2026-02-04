@@ -66,6 +66,13 @@ class SyncWarmStorageService:
     def get_service_price(self, provider_id: int, token: str) -> int:
         return int(self._fwss.functions.getServicePrice(provider_id, token).call())
 
+    def get_approved_providers(self, data_set_id: int) -> List[int]:
+        providers = self._view.functions.getApprovedProviders(data_set_id).call()
+        return [int(pid) for pid in providers]
+
+    def is_provider_approved(self, data_set_id: int, provider_id: int) -> bool:
+        return bool(self._view.functions.isProviderApproved(data_set_id, provider_id).call())
+
     def add_approved_provider(self, provider_id: int) -> str:
         if not self._private_key:
             raise ValueError("private_key required")
@@ -133,6 +140,13 @@ class AsyncWarmStorageService:
 
     async def get_service_price(self, provider_id: int, token: str) -> int:
         return int(await self._fwss.functions.getServicePrice(provider_id, token).call())
+
+    async def get_approved_providers(self, data_set_id: int) -> List[int]:
+        providers = await self._view.functions.getApprovedProviders(data_set_id).call()
+        return [int(pid) for pid in providers]
+
+    async def is_provider_approved(self, data_set_id: int, provider_id: int) -> bool:
+        return bool(await self._view.functions.isProviderApproved(data_set_id, provider_id).call())
 
     async def add_approved_provider(self, provider_id: int) -> str:
         if not self._private_key:

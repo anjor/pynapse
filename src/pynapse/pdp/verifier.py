@@ -10,7 +10,7 @@ class SyncPDPVerifier:
     def __init__(self, web3: Web3, chain: Chain) -> None:
         self._web3 = web3
         self._chain = chain
-        self._contract = web3.eth.contract(address=chain.contracts.pdp, abi=PDP_VERIFIER_ABI)
+        self._contract = web3.eth.contract(address=chain.contracts.pdp_verifier, abi=PDP_VERIFIER_ABI)
 
     def data_set_live(self, data_set_id: int) -> bool:
         return bool(self._contract.functions.dataSetLive(data_set_id).call())
@@ -41,7 +41,7 @@ class AsyncPDPVerifier:
     def __init__(self, web3: AsyncWeb3, chain: Chain) -> None:
         self._web3 = web3
         self._chain = chain
-        self._contract = web3.eth.contract(address=chain.contracts.pdp, abi=PDP_VERIFIER_ABI)
+        self._contract = web3.eth.contract(address=chain.contracts.pdp_verifier, abi=PDP_VERIFIER_ABI)
 
     async def data_set_live(self, data_set_id: int) -> bool:
         return bool(await self._contract.functions.dataSetLive(data_set_id).call())

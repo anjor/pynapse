@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict
+from typing import Dict, Optional
+
+from pynapse.contracts.generated import ADDRESSES
 
 
 @dataclass(frozen=True)
@@ -12,6 +14,8 @@ class ChainContracts:
     warm_storage: str
     warm_storage_state_view: str
     sp_registry: str
+    session_key_registry: str
+    pdp_verifier: str
 
 
 @dataclass(frozen=True)
@@ -21,6 +25,7 @@ class Chain:
     rpc_url: str
     genesis_timestamp: int
     contracts: ChainContracts
+    filbeam_domain: Optional[str] = None
 
 
 NETWORK_MAINNET = "mainnet"
@@ -47,6 +52,8 @@ CONTRACTS_BY_NETWORK: Dict[str, ChainContracts] = {
         warm_storage="0x8408502033C418E1bbC97cE9ac48E5528F371A9f",
         warm_storage_state_view="0x9e4e6699d8F67dFc883d6b0A7344Bd56F7E80B46",
         sp_registry="0xf55dDbf63F1b55c3F1D4FA7e339a68AB7b64A5eB",
+        session_key_registry=ADDRESSES["sessionKeyRegistryAddress"]["314"],
+        pdp_verifier=ADDRESSES["pdpVerifierAddress"]["314"],
     ),
     NETWORK_CALIBRATION: ChainContracts(
         multicall3="0xcA11bde05977b3631167028862bE2a173976CA11",
@@ -55,6 +62,8 @@ CONTRACTS_BY_NETWORK: Dict[str, ChainContracts] = {
         warm_storage="0x02925630df557F957f70E112bA06e50965417CA0",
         warm_storage_state_view="0xA5D87b04086B1d591026cCE10255351B5AA4689B",
         sp_registry="0x839e5c9988e4e9977d40708d0094103c0839Ac9D",
+        session_key_registry=ADDRESSES["sessionKeyRegistryAddress"]["314159"],
+        pdp_verifier=ADDRESSES["pdpVerifierAddress"]["314159"],
     ),
 }
 
@@ -65,6 +74,7 @@ MAINNET = Chain(
     rpc_url=RPC_URLS[NETWORK_MAINNET],
     genesis_timestamp=GENESIS_TIMESTAMPS[NETWORK_MAINNET],
     contracts=CONTRACTS_BY_NETWORK[NETWORK_MAINNET],
+    filbeam_domain="filbeam.io",
 )
 
 CALIBRATION = Chain(
@@ -73,6 +83,7 @@ CALIBRATION = Chain(
     rpc_url=RPC_URLS[NETWORK_CALIBRATION],
     genesis_timestamp=GENESIS_TIMESTAMPS[NETWORK_CALIBRATION],
     contracts=CONTRACTS_BY_NETWORK[NETWORK_CALIBRATION],
+    filbeam_domain=None,
 )
 
 
