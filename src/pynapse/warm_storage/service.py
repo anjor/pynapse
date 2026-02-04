@@ -73,26 +73,26 @@ class SyncWarmStorageService:
     def is_provider_approved(self, data_set_id: int, provider_id: int) -> bool:
         return bool(self._view.functions.isProviderApproved(data_set_id, provider_id).call())
 
-    def add_approved_provider(self, provider_id: int) -> str:
+    def add_approved_provider(self, account: str, provider_id: int) -> str:
         if not self._private_key:
             raise ValueError("private_key required")
         txn = self._fwss.functions.addApprovedProvider(provider_id).build_transaction(
             {
-                "from": self._web3.eth.default_account,
-                "nonce": self._web3.eth.get_transaction_count(self._web3.eth.default_account),
+                "from": account,
+                "nonce": self._web3.eth.get_transaction_count(account),
             }
         )
         signed = self._web3.eth.account.sign_transaction(txn, private_key=self._private_key)
         tx_hash = self._web3.eth.send_raw_transaction(signed.rawTransaction)
         return tx_hash.hex()
 
-    def remove_approved_provider(self, provider_id: int) -> str:
+    def remove_approved_provider(self, account: str, provider_id: int) -> str:
         if not self._private_key:
             raise ValueError("private_key required")
         txn = self._fwss.functions.removeApprovedProvider(provider_id).build_transaction(
             {
-                "from": self._web3.eth.default_account,
-                "nonce": self._web3.eth.get_transaction_count(self._web3.eth.default_account),
+                "from": account,
+                "nonce": self._web3.eth.get_transaction_count(account),
             }
         )
         signed = self._web3.eth.account.sign_transaction(txn, private_key=self._private_key)
@@ -148,26 +148,26 @@ class AsyncWarmStorageService:
     async def is_provider_approved(self, data_set_id: int, provider_id: int) -> bool:
         return bool(await self._view.functions.isProviderApproved(data_set_id, provider_id).call())
 
-    async def add_approved_provider(self, provider_id: int) -> str:
+    async def add_approved_provider(self, account: str, provider_id: int) -> str:
         if not self._private_key:
             raise ValueError("private_key required")
         txn = await self._fwss.functions.addApprovedProvider(provider_id).build_transaction(
             {
-                "from": self._web3.eth.default_account,
-                "nonce": await self._web3.eth.get_transaction_count(self._web3.eth.default_account),
+                "from": account,
+                "nonce": await self._web3.eth.get_transaction_count(account),
             }
         )
         signed = Account.sign_transaction(txn, private_key=self._private_key)
         tx_hash = await self._web3.eth.send_raw_transaction(signed.rawTransaction)
         return tx_hash.hex()
 
-    async def remove_approved_provider(self, provider_id: int) -> str:
+    async def remove_approved_provider(self, account: str, provider_id: int) -> str:
         if not self._private_key:
             raise ValueError("private_key required")
         txn = await self._fwss.functions.removeApprovedProvider(provider_id).build_transaction(
             {
-                "from": self._web3.eth.default_account,
-                "nonce": await self._web3.eth.get_transaction_count(self._web3.eth.default_account),
+                "from": account,
+                "nonce": await self._web3.eth.get_transaction_count(account),
             }
         )
         signed = Account.sign_transaction(txn, private_key=self._private_key)
