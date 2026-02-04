@@ -1,4 +1,5 @@
 from .server import AsyncPDPServer, PDPServer
+from .verifier import AsyncPDPVerifier, SyncPDPVerifier
 from .types import (
     AddPiecesResponse,
     CreateDataSetResponse,
@@ -15,4 +16,6 @@ __all__ = [
     "DataSetCreationStatus",
     "PieceAdditionStatus",
     "UploadPieceResponse",
+    "SyncPDPVerifier",
+    "AsyncPDPVerifier",
 ]
