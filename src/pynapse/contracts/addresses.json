@@ -1,0 +1,30 @@
+{
+  "filecoinPayV1Address": {
+    "314": "0x23b1e018F08BB982348b15a86ee926eEBf7F4DAa",
+    "314159": "0x09a0fDc2723fAd1A7b8e3e00eE5DF73841df55a0"
+  },
+  "filecoinWarmStorageServiceAddress": {
+    "314": "0x8408502033C418E1bbC97cE9ac48E5528F371A9f",
+    "314159": "0x02925630df557F957f70E112bA06e50965417CA0"
+  },
+  "filecoinWarmStorageServiceStateViewAddress": {
+    "314": "0x638a4986332bF9B889E5D7435B966C5ecdE077Fa",
+    "314159": "0x53d235D474585EC102ccaB7e0cdcE951dD00f716"
+  },
+  "serviceProviderRegistryAddress": {
+    "314": "0xf55dDbf63F1b55c3F1D4FA7e339a68AB7b64A5eB",
+    "314159": "0x839e5c9988e4e9977d40708d0094103c0839Ac9D"
+  },
+  "sessionKeyRegistryAddress": {
+    "314": "0x74FD50525A958aF5d484601E252271f9625231aB",
+    "314159": "0x518411c2062E119Aaf7A8B12A2eDf9a939347655"
+  },
+  "pdpVerifierAddress": {
+    "314": "0xBADd0B92C1c71d02E7d520f64c0876538fa2557F",
+    "314159": "0x85e366Cf9DD2c0aE37E963d9556F5f4718d6417C"
+  },
+  "providerIdSetAddress": {
+    "314": "0x59eFa2e8324E1551d46010d7B0B140eE2F5c726b",
+    "314159": "0xAA2f7CfC7ecAc616EC9C1f6d700fAd19087FAC84"
+  }
+}

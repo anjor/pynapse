@@ -1,0 +1,161 @@
+[
+  {
+    "type": "constructor",
+    "inputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "providerId",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "name": "addProviderId",
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "providerId",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "name": "containsProviderId",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "bool",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [],
+    "name": "getProviderIds",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "uint256[]",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "providerId",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "name": "removeProviderId",
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "inputs": [],
+    "name": "renounceOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "newOwner",
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "inputs": [
+      {
+        "name": "previousOwner",
+        "internalType": "address",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "newOwner",
+        "internalType": "address",
+        "type": "address",
+        "indexed": true
+      }
+    ],
+    "name": "OwnershipTransferred"
+  },
+  {
+    "type": "error",
+    "inputs": [
+      {
+        "name": "owner",
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "name": "OwnableInvalidOwner"
+  },
+  {
+    "type": "error",
+    "inputs": [
+      {
+        "name": "account",
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "name": "OwnableUnauthorizedAccount"
+  },
+  {
+    "type": "error",
+    "inputs": [
+      {
+        "name": "providerId",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "name": "ProviderIdNotFound"
+  },
+  {
+    "type": "error",
+    "inputs": [
+      {
+        "name": "providerId",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "name": "ProviderIdTooLarge"
+  }
+]

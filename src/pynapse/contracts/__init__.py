@@ -1,16 +1,32 @@
 from __future__ import annotations
 
-import json
-from pathlib import Path
-from typing import Any, List
+from .abi_registry import load
 
+ERC20_ABI = load("erc20_abi.json")
+PAYMENTS_ABI = load("payments_abi.json")
 
-def _load_json(name: str) -> List[Any]:
-    path = Path(__file__).with_name(name)
-    return json.loads(path.read_text())
+from .generated import (
+    ADDRESSES,
+    ERRORS_ABI,
+    FILECOIN_PAY_V1_ABI,
+    FWSS_ABI,
+    FWSS_VIEW_ABI,
+    PDP_VERIFIER_ABI,
+    PROVIDER_ID_SET_ABI,
+    SERVICE_PROVIDER_REGISTRY_ABI,
+    SESSION_KEY_REGISTRY_ABI,
+)
 
-
-ERC20_ABI = _load_json("erc20_abi.json")
-PAYMENTS_ABI = _load_json("payments_abi.json")
-
-__all__ = ["ERC20_ABI", "PAYMENTS_ABI"]
+__all__ = [
+    "ERC20_ABI",
+    "PAYMENTS_ABI",
+    "ADDRESSES",
+    "ERRORS_ABI",
+    "FILECOIN_PAY_V1_ABI",
+    "FWSS_ABI",
+    "FWSS_VIEW_ABI",
+    "PDP_VERIFIER_ABI",
+    "PROVIDER_ID_SET_ABI",
+    "SERVICE_PROVIDER_REGISTRY_ABI",
+    "SESSION_KEY_REGISTRY_ABI",
+]

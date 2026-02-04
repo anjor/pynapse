@@ -1,0 +1,147 @@
+[
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "user",
+        "internalType": "address",
+        "type": "address"
+      },
+      {
+        "name": "signer",
+        "internalType": "address",
+        "type": "address"
+      },
+      {
+        "name": "permission",
+        "internalType": "bytes32",
+        "type": "bytes32"
+      }
+    ],
+    "name": "authorizationExpiry",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "signer",
+        "internalType": "address",
+        "type": "address"
+      },
+      {
+        "name": "expiry",
+        "internalType": "uint256",
+        "type": "uint256"
+      },
+      {
+        "name": "permissions",
+        "internalType": "bytes32[]",
+        "type": "bytes32[]"
+      },
+      {
+        "name": "origin",
+        "internalType": "string",
+        "type": "string"
+      }
+    ],
+    "name": "login",
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "signer",
+        "internalType": "address payable",
+        "type": "address"
+      },
+      {
+        "name": "expiry",
+        "internalType": "uint256",
+        "type": "uint256"
+      },
+      {
+        "name": "permissions",
+        "internalType": "bytes32[]",
+        "type": "bytes32[]"
+      },
+      {
+        "name": "origin",
+        "internalType": "string",
+        "type": "string"
+      }
+    ],
+    "name": "loginAndFund",
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "signer",
+        "internalType": "address",
+        "type": "address"
+      },
+      {
+        "name": "permissions",
+        "internalType": "bytes32[]",
+        "type": "bytes32[]"
+      },
+      {
+        "name": "origin",
+        "internalType": "string",
+        "type": "string"
+      }
+    ],
+    "name": "revoke",
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "inputs": [
+      {
+        "name": "identity",
+        "internalType": "address",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "signer",
+        "internalType": "address",
+        "type": "address",
+        "indexed": false
+      },
+      {
+        "name": "expiry",
+        "internalType": "uint256",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "permissions",
+        "internalType": "bytes32[]",
+        "type": "bytes32[]",
+        "indexed": false
+      },
+      {
+        "name": "origin",
+        "internalType": "string",
+        "type": "string",
+        "indexed": false
+      }
+    ],
+    "name": "AuthorizationsUpdated"
+  }
+]

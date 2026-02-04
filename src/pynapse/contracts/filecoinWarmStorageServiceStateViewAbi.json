@@ -1,0 +1,651 @@
+[
+  {
+    "type": "constructor",
+    "inputs": [
+      {
+        "name": "_service",
+        "internalType": "contract FilecoinWarmStorageService",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "payer",
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "name": "clientDataSets",
+    "outputs": [
+      {
+        "name": "dataSetIds",
+        "internalType": "uint256[]",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "payer",
+        "internalType": "address",
+        "type": "address"
+      },
+      {
+        "name": "nonce",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "name": "clientNonces",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [],
+    "name": "filBeamControllerAddress",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "dataSetId",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "name": "getAllDataSetMetadata",
+    "outputs": [
+      {
+        "name": "keys",
+        "internalType": "string[]",
+        "type": "string[]"
+      },
+      {
+        "name": "values",
+        "internalType": "string[]",
+        "type": "string[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "dataSetId",
+        "internalType": "uint256",
+        "type": "uint256"
+      },
+      {
+        "name": "pieceId",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "name": "getAllPieceMetadata",
+    "outputs": [
+      {
+        "name": "keys",
+        "internalType": "string[]",
+        "type": "string[]"
+      },
+      {
+        "name": "values",
+        "internalType": "string[]",
+        "type": "string[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "offset",
+        "internalType": "uint256",
+        "type": "uint256"
+      },
+      {
+        "name": "limit",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "name": "getApprovedProviders",
+    "outputs": [
+      {
+        "name": "providerIds",
+        "internalType": "uint256[]",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [],
+    "name": "getApprovedProvidersLength",
+    "outputs": [
+      {
+        "name": "count",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "client",
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "name": "getClientDataSets",
+    "outputs": [
+      {
+        "name": "infos",
+        "internalType": "struct FilecoinWarmStorageService.DataSetInfoView[]",
+        "type": "tuple[]",
+        "components": [
+          {
+            "name": "pdpRailId",
+            "internalType": "uint256",
+            "type": "uint256"
+          },
+          {
+            "name": "cacheMissRailId",
+            "internalType": "uint256",
+            "type": "uint256"
+          },
+          {
+            "name": "cdnRailId",
+            "internalType": "uint256",
+            "type": "uint256"
+          },
+          {
+            "name": "payer",
+            "internalType": "address",
+            "type": "address"
+          },
+          {
+            "name": "payee",
+            "internalType": "address",
+            "type": "address"
+          },
+          {
+            "name": "serviceProvider",
+            "internalType": "address",
+            "type": "address"
+          },
+          {
+            "name": "commissionBps",
+            "internalType": "uint256",
+            "type": "uint256"
+          },
+          {
+            "name": "clientDataSetId",
+            "internalType": "uint256",
+            "type": "uint256"
+          },
+          {
+            "name": "pdpEndEpoch",
+            "internalType": "uint256",
+            "type": "uint256"
+          },
+          {
+            "name": "providerId",
+            "internalType": "uint256",
+            "type": "uint256"
+          },
+          {
+            "name": "dataSetId",
+            "internalType": "uint256",
+            "type": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [],
+    "name": "getCurrentPricingRates",
+    "outputs": [
+      {
+        "name": "storagePrice",
+        "internalType": "uint256",
+        "type": "uint256"
+      },
+      {
+        "name": "minimumRate",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "dataSetId",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "name": "getDataSet",
+    "outputs": [
+      {
+        "name": "info",
+        "internalType": "struct FilecoinWarmStorageService.DataSetInfoView",
+        "type": "tuple",
+        "components": [
+          {
+            "name": "pdpRailId",
+            "internalType": "uint256",
+            "type": "uint256"
+          },
+          {
+            "name": "cacheMissRailId",
+            "internalType": "uint256",
+            "type": "uint256"
+          },
+          {
+            "name": "cdnRailId",
+            "internalType": "uint256",
+            "type": "uint256"
+          },
+          {
+            "name": "payer",
+            "internalType": "address",
+            "type": "address"
+          },
+          {
+            "name": "payee",
+            "internalType": "address",
+            "type": "address"
+          },
+          {
+            "name": "serviceProvider",
+            "internalType": "address",
+            "type": "address"
+          },
+          {
+            "name": "commissionBps",
+            "internalType": "uint256",
+            "type": "uint256"
+          },
+          {
+            "name": "clientDataSetId",
+            "internalType": "uint256",
+            "type": "uint256"
+          },
+          {
+            "name": "pdpEndEpoch",
+            "internalType": "uint256",
+            "type": "uint256"
+          },
+          {
+            "name": "providerId",
+            "internalType": "uint256",
+            "type": "uint256"
+          },
+          {
+            "name": "dataSetId",
+            "internalType": "uint256",
+            "type": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "dataSetId",
+        "internalType": "uint256",
+        "type": "uint256"
+      },
+      {
+        "name": "key",
+        "internalType": "string",
+        "type": "string"
+      }
+    ],
+    "name": "getDataSetMetadata",
+    "outputs": [
+      {
+        "name": "exists",
+        "internalType": "bool",
+        "type": "bool"
+      },
+      {
+        "name": "value",
+        "internalType": "string",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "leafCount",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "name": "getDataSetSizeInBytes",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "dataSetId",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "name": "getDataSetStatus",
+    "outputs": [
+      {
+        "name": "status",
+        "internalType": "enum FilecoinWarmStorageService.DataSetStatus",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [],
+    "name": "getPDPConfig",
+    "outputs": [
+      {
+        "name": "maxProvingPeriod",
+        "internalType": "uint64",
+        "type": "uint64"
+      },
+      {
+        "name": "challengeWindowSize",
+        "internalType": "uint256",
+        "type": "uint256"
+      },
+      {
+        "name": "challengesPerProof",
+        "internalType": "uint256",
+        "type": "uint256"
+      },
+      {
+        "name": "initChallengeWindowStart",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "dataSetId",
+        "internalType": "uint256",
+        "type": "uint256"
+      },
+      {
+        "name": "pieceId",
+        "internalType": "uint256",
+        "type": "uint256"
+      },
+      {
+        "name": "key",
+        "internalType": "string",
+        "type": "string"
+      }
+    ],
+    "name": "getPieceMetadata",
+    "outputs": [
+      {
+        "name": "exists",
+        "internalType": "bool",
+        "type": "bool"
+      },
+      {
+        "name": "value",
+        "internalType": "string",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "providerId",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "name": "isProviderApproved",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "bool",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "setId",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "name": "nextPDPChallengeWindowStart",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [],
+    "name": "nextUpgrade",
+    "outputs": [
+      {
+        "name": "nextImplementation",
+        "internalType": "address",
+        "type": "address"
+      },
+      {
+        "name": "afterEpoch",
+        "internalType": "uint96",
+        "type": "uint96"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "dataSetId",
+        "internalType": "uint256",
+        "type": "uint256"
+      },
+      {
+        "name": "periodId",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "name": "provenPeriods",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "bool",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "dataSetId",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "name": "provenThisPeriod",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "bool",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "dataSetId",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "name": "provingActivationEpoch",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "setId",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "name": "provingDeadline",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "railId",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "name": "railToDataSet",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [],
+    "name": "service",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "contract FilecoinWarmStorageService",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [],
+    "name": "serviceCommissionBps",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "error",
+    "inputs": [
+      {
+        "name": "dataSetId",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "name": "ProvingPeriodNotInitialized"
+  }
+]

@@ -9,6 +9,9 @@ from web3 import AsyncWeb3, Web3
 from pynapse.core.chains import CALIBRATION, MAINNET, Chain, as_chain
 from pynapse.evm import AsyncEVMClient, SyncEVMClient
 from pynapse.payments import AsyncPaymentsService, SyncPaymentsService
+from pynapse.storage import StorageManager
+from pynapse.sp_registry import AsyncSPRegistryService, SyncSPRegistryService
+from pynapse.warm_storage import AsyncWarmStorageService, SyncWarmStorageService
 
 
 class Synapse:
@@ -18,6 +21,9 @@ class Synapse:
         self._account = account_address
         self._private_key = private_key
         self._payments = SyncPaymentsService(web3, chain, account_address, private_key)
+        self._providers = SyncSPRegistryService(web3, chain, private_key)
+        self._warm_storage = SyncWarmStorageService(web3, chain, private_key)
+        self._storage = StorageManager(chain, private_key)
 
     @classmethod
     def create(cls, rpc_url: str, chain: Chain | str | int = CALIBRATION, private_key: Optional[str] = None) -> "Synapse":
@@ -44,6 +50,18 @@ class Synapse:
     def payments(self) -> SyncPaymentsService:
         return self._payments
 
+    @property
+    def providers(self) -> SyncSPRegistryService:
+        return self._providers
+
+    @property
+    def warm_storage(self) -> SyncWarmStorageService:
+        return self._warm_storage
+
+    @property
+    def storage(self) -> StorageManager:
+        return self._storage
+
 
 class AsyncSynapse:
     def __init__(self, web3: AsyncWeb3, chain: Chain, account_address: str, private_key: Optional[str] = None) -> None:
@@ -52,6 +70,9 @@ class AsyncSynapse:
         self._account = account_address
         self._private_key = private_key
         self._payments = AsyncPaymentsService(web3, chain, account_address, private_key)
+        self._providers = AsyncSPRegistryService(web3, chain, private_key)
+        self._warm_storage = AsyncWarmStorageService(web3, chain, private_key)
+        self._storage = StorageManager(chain, private_key)
 
     @classmethod
     async def create(
@@ -79,3 +100,15 @@ class AsyncSynapse:
     @property
     def payments(self) -> AsyncPaymentsService:
         return self._payments
+
+    @property
+    def providers(self) -> AsyncSPRegistryService:
+        return self._providers
+
+    @property
+    def warm_storage(self) -> AsyncWarmStorageService:
+        return self._warm_storage
+
+    @property
+    def storage(self) -> StorageManager:
+        return self._storage
