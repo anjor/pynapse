@@ -59,9 +59,26 @@ class SyncWarmStorageService:
         entries = self._view.functions.getAllDataSetMetadata(data_set_id).call()
         return {key: value for key, value in entries}
 
+    def get_data_set_metadata(self, data_set_id: int, key: str) -> Optional[str]:
+        exists, value = self._view.functions.getDataSetMetadata(data_set_id, key).call()
+        return value if exists else None
+
     def get_all_piece_metadata(self, data_set_id: int) -> List[Dict[str, str]]:
         entries = self._view.functions.getAllPieceMetadata(data_set_id).call()
         return [dict(entry) for entry in entries]
+
+    def get_piece_metadata(self, data_set_id: int, piece_id: int, key: str) -> Optional[str]:
+        exists, value = self._view.functions.getPieceMetadata(data_set_id, piece_id, key).call()
+        return value if exists else None
+
+    def get_data_set_status(self, data_set_id: int) -> int:
+        return int(self._view.functions.getDataSetStatus(data_set_id).call())
+
+    def get_data_set_size_in_bytes(self, leaf_count: int) -> int:
+        return int(self._view.functions.getDataSetSizeInBytes(leaf_count).call())
+
+    def get_pdp_config(self):
+        return self._view.functions.getPDPConfig().call()
 
     def get_service_price(self, provider_id: int, token: str) -> int:
         return int(self._fwss.functions.getServicePrice(provider_id, token).call())
@@ -134,9 +151,26 @@ class AsyncWarmStorageService:
         entries = await self._view.functions.getAllDataSetMetadata(data_set_id).call()
         return {key: value for key, value in entries}
 
+    async def get_data_set_metadata(self, data_set_id: int, key: str) -> Optional[str]:
+        exists, value = await self._view.functions.getDataSetMetadata(data_set_id, key).call()
+        return value if exists else None
+
     async def get_all_piece_metadata(self, data_set_id: int) -> List[Dict[str, str]]:
         entries = await self._view.functions.getAllPieceMetadata(data_set_id).call()
         return [dict(entry) for entry in entries]
+
+    async def get_piece_metadata(self, data_set_id: int, piece_id: int, key: str) -> Optional[str]:
+        exists, value = await self._view.functions.getPieceMetadata(data_set_id, piece_id, key).call()
+        return value if exists else None
+
+    async def get_data_set_status(self, data_set_id: int) -> int:
+        return int(await self._view.functions.getDataSetStatus(data_set_id).call())
+
+    async def get_data_set_size_in_bytes(self, leaf_count: int) -> int:
+        return int(await self._view.functions.getDataSetSizeInBytes(leaf_count).call())
+
+    async def get_pdp_config(self):
+        return await self._view.functions.getPDPConfig().call()
 
     async def get_service_price(self, provider_id: int, token: str) -> int:
         return int(await self._fwss.functions.getServicePrice(provider_id, token).call())

@@ -36,6 +36,13 @@ class SyncPDPVerifier:
     def get_scheduled_removals(self, data_set_id: int):
         return self._contract.functions.getScheduledRemovals(data_set_id).call()
 
+    def get_piece_cid(self, data_set_id: int, piece_id: int) -> bytes:
+        result = self._contract.functions.getPieceCid(data_set_id, piece_id).call()
+        return result[0]
+
+    def piece_live(self, data_set_id: int, piece_id: int) -> bool:
+        return bool(self._contract.functions.pieceLive(data_set_id, piece_id).call())
+
 
 class AsyncPDPVerifier:
     def __init__(self, web3: AsyncWeb3, chain: Chain) -> None:
@@ -66,3 +73,10 @@ class AsyncPDPVerifier:
 
     async def get_scheduled_removals(self, data_set_id: int):
         return await self._contract.functions.getScheduledRemovals(data_set_id).call()
+
+    async def get_piece_cid(self, data_set_id: int, piece_id: int) -> bytes:
+        result = await self._contract.functions.getPieceCid(data_set_id, piece_id).call()
+        return result[0]
+
+    async def piece_live(self, data_set_id: int, piece_id: int) -> bool:
+        return bool(await self._contract.functions.pieceLive(data_set_id, piece_id).call())
