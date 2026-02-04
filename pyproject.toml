@@ -19,7 +19,8 @@ classifiers = [
 ]
 dependencies = [
   "web3>=6.0.0,<7",
-  "httpx>=0.25.0,<0.28.0"
+  "httpx>=0.25.0,<0.28.0",
+  "multiformats>=0.3.1,<0.4.0"
 ]
 
 [project.urls]
