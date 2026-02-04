@@ -25,3 +25,11 @@ def combine_metadata(metadata: Dict[str, str] | None = None, with_cdn: bool | No
         combined[METADATA_KEYS["WITH_CDN"]] = ""
         return combined
     return metadata
+
+
+def metadata_array_to_object(entries: list[tuple[str, str]]) -> Dict[str, str]:
+    return {key: value for key, value in entries}
+
+
+def metadata_object_to_entries(metadata: Dict[str, str]) -> list[dict[str, str]]:
+    return [{"key": key, "value": value} for key, value in metadata.items()]

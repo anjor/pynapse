@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import re
-from dataclasses import asdict
+import time
 from typing import Iterable, Optional
 
 import httpx
@@ -54,6 +55,15 @@ class PDPServer:
             message=payload.get("message"),
         )
 
+    def wait_for_data_set_creation(self, tx_hash: str, timeout_seconds: int = 300, poll_interval: int = 4) -> DataSetCreationStatus:
+        deadline = time.time() + timeout_seconds
+        while time.time() < deadline:
+            status = self.get_data_set_creation_status(tx_hash)
+            if status.data_set_created:
+                return status
+            time.sleep(poll_interval)
+        raise TimeoutError("Timed out waiting for data set creation")
+
     def add_pieces(self, data_set_id: int, piece_cids: Iterable[str], extra_data: str) -> AddPiecesResponse:
         pieces = [
             {
@@ -92,6 +102,15 @@ class PDPServer:
             message=payload.get("message"),
         )
 
+    def wait_for_piece_addition(self, data_set_id: int, tx_hash: str, timeout_seconds: int = 300, poll_interval: int = 1) -> PieceAdditionStatus:
+        deadline = time.time() + timeout_seconds
+        while time.time() < deadline:
+            status = self.get_piece_addition_status(data_set_id, tx_hash)
+            if status.add_message_ok:
+                return status
+            time.sleep(poll_interval)
+        raise TimeoutError("Timed out waiting for piece addition")
+
     def upload_piece(self, data: bytes, piece_cid: str) -> UploadPieceResponse:
         create_resp = self._client.post(f"{self._endpoint}/pdp/piece/uploads")
         if create_resp.status_code != 201:
@@ -127,6 +146,19 @@ class PDPServer:
             raise RuntimeError(f"piece not found: {piece_cid}")
         if resp.status_code != 200:
             raise RuntimeError(f"unexpected status {resp.status_code}: {resp.text}")
+
+    def wait_for_piece(self, piece_cid: str, timeout_seconds: int = 300, poll_interval: int = 5) -> None:
+        deadline = time.time() + timeout_seconds
+        while time.time() < deadline:
+            try:
+                self.find_piece(piece_cid)
+                return
+            except RuntimeError as exc:
+                if "not found" in str(exc):
+                    time.sleep(poll_interval)
+                    continue
+                raise
+        raise TimeoutError("Timed out waiting for piece to be available")
 
     def download_piece(self, piece_cid: str) -> bytes:
         resp = self._client.get(f"{self._endpoint}/pdp/piece/{piece_cid}")
@@ -175,6 +207,15 @@ class AsyncPDPServer:
             message=payload.get("message"),
         )
 
+    async def wait_for_data_set_creation(self, tx_hash: str, timeout_seconds: int = 300, poll_interval: int = 4) -> DataSetCreationStatus:
+        deadline = time.time() + timeout_seconds
+        while time.time() < deadline:
+            status = await self.get_data_set_creation_status(tx_hash)
+            if status.data_set_created:
+                return status
+            await asyncio.sleep(poll_interval)
+        raise TimeoutError("Timed out waiting for data set creation")
+
     async def add_pieces(self, data_set_id: int, piece_cids: Iterable[str], extra_data: str) -> AddPiecesResponse:
         pieces = [
             {
@@ -213,6 +254,15 @@ class AsyncPDPServer:
             message=payload.get("message"),
         )
 
+    async def wait_for_piece_addition(self, data_set_id: int, tx_hash: str, timeout_seconds: int = 300, poll_interval: int = 1) -> PieceAdditionStatus:
+        deadline = time.time() + timeout_seconds
+        while time.time() < deadline:
+            status = await self.get_piece_addition_status(data_set_id, tx_hash)
+            if status.add_message_ok:
+                return status
+            await asyncio.sleep(poll_interval)
+        raise TimeoutError("Timed out waiting for piece addition")
+
     async def upload_piece(self, data: bytes, piece_cid: str) -> UploadPieceResponse:
         create_resp = await self._client.post(f"{self._endpoint}/pdp/piece/uploads")
         if create_resp.status_code != 201:
@@ -248,6 +298,19 @@ class AsyncPDPServer:
             raise RuntimeError(f"piece not found: {piece_cid}")
         if resp.status_code != 200:
             raise RuntimeError(f"unexpected status {resp.status_code}: {resp.text}")
+
+    async def wait_for_piece(self, piece_cid: str, timeout_seconds: int = 300, poll_interval: int = 5) -> None:
+        deadline = time.time() + timeout_seconds
+        while time.time() < deadline:
+            try:
+                await self.find_piece(piece_cid)
+                return
+            except RuntimeError as exc:
+                if "not found" in str(exc):
+                    await asyncio.sleep(poll_interval)
+                    continue
+                raise
+        raise TimeoutError("Timed out waiting for piece to be available")
 
     async def download_piece(self, piece_cid: str) -> bytes:
         resp = await self._client.get(f"{self._endpoint}/pdp/piece/{piece_cid}")

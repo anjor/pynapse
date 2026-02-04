@@ -83,6 +83,24 @@ class SyncWarmStorageService:
     def get_service_price(self, provider_id: int, token: str) -> int:
         return int(self._fwss.functions.getServicePrice(provider_id, token).call())
 
+    def get_effective_rates(self):
+        return self._fwss.functions.getEffectiveRates().call()
+
+    def calculate_rate_per_epoch(self, total_bytes: int) -> int:
+        return int(self._fwss.functions.calculateRatePerEpoch(total_bytes).call())
+
+    def get_proving_period_for_epoch(self, data_set_id: int, epoch: int) -> int:
+        return int(self._fwss.functions.getProvingPeriodForEpoch(data_set_id, epoch).call())
+
+    def get_current_pricing_rates(self):
+        return self._view.functions.getCurrentPricingRates().call()
+
+    def next_pdp_challenge_window_start(self, data_set_id: int) -> int:
+        return int(self._view.functions.nextPDPChallengeWindowStart(data_set_id).call())
+
+    def proving_deadline(self, data_set_id: int) -> int:
+        return int(self._view.functions.provingDeadline(data_set_id).call())
+
     def get_approved_providers(self, data_set_id: int) -> List[int]:
         providers = self._view.functions.getApprovedProviders(data_set_id).call()
         return [int(pid) for pid in providers]
@@ -174,6 +192,24 @@ class AsyncWarmStorageService:
 
     async def get_service_price(self, provider_id: int, token: str) -> int:
         return int(await self._fwss.functions.getServicePrice(provider_id, token).call())
+
+    async def get_effective_rates(self):
+        return await self._fwss.functions.getEffectiveRates().call()
+
+    async def calculate_rate_per_epoch(self, total_bytes: int) -> int:
+        return int(await self._fwss.functions.calculateRatePerEpoch(total_bytes).call())
+
+    async def get_proving_period_for_epoch(self, data_set_id: int, epoch: int) -> int:
+        return int(await self._fwss.functions.getProvingPeriodForEpoch(data_set_id, epoch).call())
+
+    async def get_current_pricing_rates(self):
+        return await self._view.functions.getCurrentPricingRates().call()
+
+    async def next_pdp_challenge_window_start(self, data_set_id: int) -> int:
+        return int(await self._view.functions.nextPDPChallengeWindowStart(data_set_id).call())
+
+    async def proving_deadline(self, data_set_id: int) -> int:
+        return int(await self._view.functions.provingDeadline(data_set_id).call())
 
     async def get_approved_providers(self, data_set_id: int) -> List[int]:
         providers = await self._view.functions.getApprovedProviders(data_set_id).call()

@@ -115,7 +115,7 @@ class SyncSPRegistryService:
             offset += limit
         return providers
 
-    def register_provider(self, account: str, info: ProviderRegistrationInfo) -> str:
+    def register_provider(self, account: str, info: ProviderRegistrationInfo, product_type: int = 1) -> str:
         if not self._private_key:
             raise ValueError("private_key required for register_provider")
         keys, values = encode_pdp_capabilities(info.pdp_offering, info.capabilities)
@@ -123,9 +123,77 @@ class SyncSPRegistryService:
             info.payee,
             info.name,
             info.description,
+            product_type,
             keys,
             values,
         ).build_transaction(
+            {
+                "from": account,
+                "nonce": self._web3.eth.get_transaction_count(account),
+            }
+        )
+        signed = self._web3.eth.account.sign_transaction(txn, private_key=self._private_key)
+        tx_hash = self._web3.eth.send_raw_transaction(signed.rawTransaction)
+        return tx_hash.hex()
+
+    def update_provider_info(self, account: str, name: str, description: str) -> str:
+        if not self._private_key:
+            raise ValueError("private_key required for update_provider_info")
+        txn = self._contract.functions.updateProviderInfo(name, description).build_transaction(
+            {
+                "from": account,
+                "nonce": self._web3.eth.get_transaction_count(account),
+            }
+        )
+        signed = self._web3.eth.account.sign_transaction(txn, private_key=self._private_key)
+        tx_hash = self._web3.eth.send_raw_transaction(signed.rawTransaction)
+        return tx_hash.hex()
+
+    def remove_provider(self, account: str) -> str:
+        if not self._private_key:
+            raise ValueError("private_key required for remove_provider")
+        txn = self._contract.functions.removeProvider().build_transaction(
+            {
+                "from": account,
+                "nonce": self._web3.eth.get_transaction_count(account),
+            }
+        )
+        signed = self._web3.eth.account.sign_transaction(txn, private_key=self._private_key)
+        tx_hash = self._web3.eth.send_raw_transaction(signed.rawTransaction)
+        return tx_hash.hex()
+
+    def add_product(self, account: str, product_type: int, pdp_offering: PDPOffering, capabilities: Optional[dict] = None) -> str:
+        if not self._private_key:
+            raise ValueError("private_key required for add_product")
+        keys, values = encode_pdp_capabilities(pdp_offering, capabilities)
+        txn = self._contract.functions.addProduct(product_type, keys, values).build_transaction(
+            {
+                "from": account,
+                "nonce": self._web3.eth.get_transaction_count(account),
+            }
+        )
+        signed = self._web3.eth.account.sign_transaction(txn, private_key=self._private_key)
+        tx_hash = self._web3.eth.send_raw_transaction(signed.rawTransaction)
+        return tx_hash.hex()
+
+    def update_product(self, account: str, product_type: int, pdp_offering: PDPOffering, capabilities: Optional[dict] = None) -> str:
+        if not self._private_key:
+            raise ValueError("private_key required for update_product")
+        keys, values = encode_pdp_capabilities(pdp_offering, capabilities)
+        txn = self._contract.functions.updateProduct(product_type, keys, values).build_transaction(
+            {
+                "from": account,
+                "nonce": self._web3.eth.get_transaction_count(account),
+            }
+        )
+        signed = self._web3.eth.account.sign_transaction(txn, private_key=self._private_key)
+        tx_hash = self._web3.eth.send_raw_transaction(signed.rawTransaction)
+        return tx_hash.hex()
+
+    def remove_product(self, account: str, product_type: int) -> str:
+        if not self._private_key:
+            raise ValueError("private_key required for remove_product")
+        txn = self._contract.functions.removeProduct(product_type).build_transaction(
             {
                 "from": account,
                 "nonce": self._web3.eth.get_transaction_count(account),
@@ -264,7 +332,7 @@ class AsyncSPRegistryService:
             offset += limit
         return providers
 
-    async def register_provider(self, account: str, info: ProviderRegistrationInfo) -> str:
+    async def register_provider(self, account: str, info: ProviderRegistrationInfo, product_type: int = 1) -> str:
         if not self._private_key:
             raise ValueError("private_key required for register_provider")
         keys, values = encode_pdp_capabilities(info.pdp_offering, info.capabilities)
@@ -272,9 +340,77 @@ class AsyncSPRegistryService:
             info.payee,
             info.name,
             info.description,
+            product_type,
             keys,
             values,
         ).build_transaction(
+            {
+                "from": account,
+                "nonce": await self._web3.eth.get_transaction_count(account),
+            }
+        )
+        signed = Account.sign_transaction(txn, private_key=self._private_key)
+        tx_hash = await self._web3.eth.send_raw_transaction(signed.rawTransaction)
+        return tx_hash.hex()
+
+    async def update_provider_info(self, account: str, name: str, description: str) -> str:
+        if not self._private_key:
+            raise ValueError("private_key required for update_provider_info")
+        txn = await self._contract.functions.updateProviderInfo(name, description).build_transaction(
+            {
+                "from": account,
+                "nonce": await self._web3.eth.get_transaction_count(account),
+            }
+        )
+        signed = Account.sign_transaction(txn, private_key=self._private_key)
+        tx_hash = await self._web3.eth.send_raw_transaction(signed.rawTransaction)
+        return tx_hash.hex()
+
+    async def remove_provider(self, account: str) -> str:
+        if not self._private_key:
+            raise ValueError("private_key required for remove_provider")
+        txn = await self._contract.functions.removeProvider().build_transaction(
+            {
+                "from": account,
+                "nonce": await self._web3.eth.get_transaction_count(account),
+            }
+        )
+        signed = Account.sign_transaction(txn, private_key=self._private_key)
+        tx_hash = await self._web3.eth.send_raw_transaction(signed.rawTransaction)
+        return tx_hash.hex()
+
+    async def add_product(self, account: str, product_type: int, pdp_offering: PDPOffering, capabilities: Optional[dict] = None) -> str:
+        if not self._private_key:
+            raise ValueError("private_key required for add_product")
+        keys, values = encode_pdp_capabilities(pdp_offering, capabilities)
+        txn = await self._contract.functions.addProduct(product_type, keys, values).build_transaction(
+            {
+                "from": account,
+                "nonce": await self._web3.eth.get_transaction_count(account),
+            }
+        )
+        signed = Account.sign_transaction(txn, private_key=self._private_key)
+        tx_hash = await self._web3.eth.send_raw_transaction(signed.rawTransaction)
+        return tx_hash.hex()
+
+    async def update_product(self, account: str, product_type: int, pdp_offering: PDPOffering, capabilities: Optional[dict] = None) -> str:
+        if not self._private_key:
+            raise ValueError("private_key required for update_product")
+        keys, values = encode_pdp_capabilities(pdp_offering, capabilities)
+        txn = await self._contract.functions.updateProduct(product_type, keys, values).build_transaction(
+            {
+                "from": account,
+                "nonce": await self._web3.eth.get_transaction_count(account),
+            }
+        )
+        signed = Account.sign_transaction(txn, private_key=self._private_key)
+        tx_hash = await self._web3.eth.send_raw_transaction(signed.rawTransaction)
+        return tx_hash.hex()
+
+    async def remove_product(self, account: str, product_type: int) -> str:
+        if not self._private_key:
+            raise ValueError("private_key required for remove_product")
+        txn = await self._contract.functions.removeProduct(product_type).build_transaction(
             {
                 "from": account,
                 "nonce": await self._web3.eth.get_transaction_count(account),
