@@ -15,6 +15,11 @@ uv venv
 uv pip install -e .[test]
 ```
 
+## CommP / PieceCID
+
+`pynapse` uses `stream-commp` from `go-fil-commp-hashhash` for PieceCID calculation.
+Set `PYNAPSE_COMMP_HELPER` to override the helper path.
+
 ## License
 
 Dual-licensed under Apache-2.0 OR MIT. See `LICENSE.md`.
