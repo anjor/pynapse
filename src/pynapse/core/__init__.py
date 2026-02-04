@@ -7,6 +7,17 @@ from .chains import (
     ChainContracts,
     as_chain,
 )
+from .abis import (
+    ADDRESSES,
+    ERRORS_ABI,
+    FILECOIN_PAY_V1_ABI,
+    FWSS_ABI,
+    FWSS_VIEW_ABI,
+    PDP_VERIFIER_ABI,
+    PROVIDER_ID_SET_ABI,
+    SERVICE_PROVIDER_REGISTRY_ABI,
+    SESSION_KEY_REGISTRY_ABI,
+)
 from .constants import LOCKUP_PERIOD, RETRY_CONSTANTS, SIZE_CONSTANTS, TIME_CONSTANTS
 from .errors import SynapseError, create_error
 from .piece import PieceCidInfo, calculate_piece_cid
@@ -27,6 +38,15 @@ __all__ = [
     "MAINNET",
     "CALIBRATION",
     "as_chain",
+    "ADDRESSES",
+    "ERRORS_ABI",
+    "FILECOIN_PAY_V1_ABI",
+    "FWSS_ABI",
+    "FWSS_VIEW_ABI",
+    "PDP_VERIFIER_ABI",
+    "PROVIDER_ID_SET_ABI",
+    "SERVICE_PROVIDER_REGISTRY_ABI",
+    "SESSION_KEY_REGISTRY_ABI",
     "SIZE_CONSTANTS",
     "TIME_CONSTANTS",
     "LOCKUP_PERIOD",
