@@ -25,7 +25,13 @@ class Synapse:
         self._payments = SyncPaymentsService(web3, chain, account_address, private_key)
         self._providers = SyncSPRegistryService(web3, chain, private_key)
         self._warm_storage = SyncWarmStorageService(web3, chain, private_key)
-        self._storage = StorageManager(chain, private_key)
+        # Wire up storage manager with warm_storage and sp_registry for smart context creation
+        self._storage = StorageManager(
+            chain=chain,
+            private_key=private_key,
+            sp_registry=self._providers,
+            warm_storage=self._warm_storage,
+        )
         self._session_registry = SyncSessionKeyRegistry(web3, chain, private_key)
         self._filbeam = FilBeamService(chain)
 
@@ -84,7 +90,16 @@ class AsyncSynapse:
         self._payments = AsyncPaymentsService(web3, chain, account_address, private_key)
         self._providers = AsyncSPRegistryService(web3, chain, private_key)
         self._warm_storage = AsyncWarmStorageService(web3, chain, private_key)
-        self._storage = StorageManager(chain, private_key)
+        # Note: StorageManager sync methods use sync services; for async, need wrapper
+        # For now, pass sync-like interfaces - full async StorageManager is future work
+        self._storage = StorageManager(
+            chain=chain,
+            private_key=private_key,
+            # AsyncSynapse uses async services, but StorageManager methods are sync
+            # Users should use synapse.storage with context from get_context() for async patterns
+            sp_registry=None,  # Async services not compatible with sync StorageManager
+            warm_storage=None,
+        )
         self._session_registry = AsyncSessionKeyRegistry(web3, chain, private_key)
         self._filbeam = FilBeamService(chain)
 
