@@ -13,8 +13,24 @@ from .manager import (
     StorageManager,
     StoragePricing,
 )
+from .async_context import (
+    AsyncProviderSelectionResult,
+    AsyncStorageContext,
+    AsyncStorageContextOptions,
+    AsyncUploadResult,
+)
+from .async_manager import (
+    AsyncDataSetMatch,
+    AsyncPreflightInfo,
+    AsyncProviderFilter,
+    AsyncServiceParameters,
+    AsyncStorageInfo,
+    AsyncStorageManager,
+    AsyncStoragePricing,
+)
 
 __all__ = [
+    # Sync classes
     "DataSetMatch",
     "PreflightInfo",
     "ProviderFilter",
@@ -26,4 +42,16 @@ __all__ = [
     "StorageManager",
     "StoragePricing",
     "UploadResult",
+    # Async classes
+    "AsyncDataSetMatch",
+    "AsyncPreflightInfo",
+    "AsyncProviderFilter",
+    "AsyncProviderSelectionResult",
+    "AsyncServiceParameters",
+    "AsyncStorageContext",
+    "AsyncStorageContextOptions",
+    "AsyncStorageInfo",
+    "AsyncStorageManager",
+    "AsyncStoragePricing",
+    "AsyncUploadResult",
 ]

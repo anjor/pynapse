@@ -10,9 +10,9 @@ from pynapse.core.chains import CALIBRATION, MAINNET, Chain, as_chain
 from pynapse.evm import AsyncEVMClient, SyncEVMClient
 from pynapse.payments import AsyncPaymentsService, SyncPaymentsService
 from pynapse.filbeam import FilBeamService
-from pynapse.retriever import ChainRetriever
+from pynapse.retriever import ChainRetriever, AsyncChainRetriever
 from pynapse.session import AsyncSessionKeyRegistry, SyncSessionKeyRegistry
-from pynapse.storage import StorageManager
+from pynapse.storage import StorageManager, AsyncStorageManager
 from pynapse.sp_registry import AsyncSPRegistryService, SyncSPRegistryService
 from pynapse.warm_storage import AsyncWarmStorageService, SyncWarmStorageService
 
@@ -90,6 +90,21 @@ class Synapse:
 
 
 class AsyncSynapse:
+    """
+    Async Synapse client for Filecoin Onchain Cloud.
+    
+    Provides full async/await support for Python async applications.
+    
+    Example:
+        synapse = await AsyncSynapse.create(rpc_url, chain, private_key)
+        
+        # Upload data
+        result = await synapse.storage.upload(data)
+        
+        # Download data
+        data = await synapse.storage.download(piece_cid)
+    """
+    
     def __init__(self, web3: AsyncWeb3, chain: Chain, account_address: str, private_key: Optional[str] = None) -> None:
         self._web3 = web3
         self._chain = chain
@@ -98,15 +113,15 @@ class AsyncSynapse:
         self._payments = AsyncPaymentsService(web3, chain, account_address, private_key)
         self._providers = AsyncSPRegistryService(web3, chain, private_key)
         self._warm_storage = AsyncWarmStorageService(web3, chain, private_key)
-        # Note: StorageManager sync methods use sync services; for async, need wrapper
-        # For now, pass sync-like interfaces - full async StorageManager is future work
-        self._storage = StorageManager(
+        # Create async retriever for SP-agnostic downloads
+        self._retriever = AsyncChainRetriever(self._warm_storage, self._providers)
+        # Wire up async storage manager with warm_storage, sp_registry, and retriever
+        self._storage = AsyncStorageManager(
             chain=chain,
             private_key=private_key,
-            # AsyncSynapse uses async services, but StorageManager methods are sync
-            # Users should use synapse.storage with context from get_context() for async patterns
-            sp_registry=None,  # Async services not compatible with sync StorageManager
-            warm_storage=None,
+            sp_registry=self._providers,
+            warm_storage=self._warm_storage,
+            retriever=self._retriever,
         )
         self._session_registry = AsyncSessionKeyRegistry(web3, chain, private_key)
         self._filbeam = FilBeamService(chain)
@@ -115,6 +130,17 @@ class AsyncSynapse:
     async def create(
         cls, rpc_url: str, chain: Chain | str | int = CALIBRATION, private_key: Optional[str] = None
     ) -> "AsyncSynapse":
+        """
+        Create an async Synapse client.
+        
+        Args:
+            rpc_url: RPC URL for the Filecoin chain
+            chain: Chain configuration (CALIBRATION, MAINNET, or chain ID)
+            private_key: Private key for signing transactions
+            
+        Returns:
+            Configured AsyncSynapse instance
+        """
         client = AsyncEVMClient.from_rpc_url(rpc_url)
         chain_obj = as_chain(chain)
         if private_key is None:
@@ -147,7 +173,8 @@ class AsyncSynapse:
         return self._warm_storage
 
     @property
-    def storage(self) -> StorageManager:
+    def storage(self) -> AsyncStorageManager:
+        """Get the async storage manager for upload/download operations."""
         return self._storage
 
     @property
@@ -157,3 +184,8 @@ class AsyncSynapse:
     @property
     def filbeam(self) -> FilBeamService:
         return self._filbeam
+
+    @property
+    def retriever(self) -> AsyncChainRetriever:
+        """Get the async retriever for SP-agnostic downloads."""
+        return self._retriever
