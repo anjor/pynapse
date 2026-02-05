@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
@@ -7,7 +8,6 @@ from eth_abi import encode as abi_encode
 from eth_account import Account
 from eth_account.messages import encode_structured_data
 from eth_utils import to_bytes
-from multiformats import CID
 
 from .chains import Chain
 from .rand import rand_u256
@@ -80,8 +80,23 @@ def _sign_typed_data(private_key: str, domain: Dict[str, Any], primary_type: str
 
 
 def _piece_cid_bytes(piece_cid: str) -> bytes:
-    cid = CID.decode(piece_cid)
-    return bytes(cid)
+    """Convert a piece CID string to its raw bytes.
+    
+    Handles both PieceCIDv1 (baga...) and PieceCIDv2 (bafk...) formats
+    by decoding the base32lower multibase encoding directly.
+    """
+    if not (piece_cid.startswith('baga') or piece_cid.startswith('bafk')):
+        raise ValueError(f"Unsupported CID format: {piece_cid}")
+    
+    # Remove 'b' prefix (base32lower multibase prefix)
+    raw = piece_cid[1:]
+    # base32lower uses lowercase RFC 4648 alphabet
+    # Python's base64.b32decode expects uppercase
+    raw_upper = raw.upper()
+    # Add padding
+    padding = (8 - len(raw_upper) % 8) % 8
+    raw_padded = raw_upper + '=' * padding
+    return base64.b32decode(raw_padded)
 
 
 def sign_create_dataset(
@@ -212,6 +227,7 @@ def sign_create_dataset_extra_data(
     client_data_set_id: int,
     payee: str,
     metadata: Optional[Sequence[Dict[str, str]]] = None,
+    payer: Optional[str] = None,
     verifying_contract: Optional[str] = None,
 ) -> str:
     """
@@ -225,6 +241,7 @@ def sign_create_dataset_extra_data(
         client_data_set_id: Client-side dataset identifier
         payee: Address to receive payments
         metadata: Optional dataset metadata as list of {key, value} dicts
+        payer: Address that will pay for storage (defaults to signer's address)
         verifying_contract: Optional override for verifying contract address
         
     Returns:
@@ -233,12 +250,19 @@ def sign_create_dataset_extra_data(
     metadata = metadata or []
     signature = sign_create_dataset(private_key, chain, client_data_set_id, payee, metadata, verifying_contract)
     
+    # Derive payer address from private key if not provided
+    if payer is None:
+        acct = Account.from_key(private_key)
+        payer = acct.address
+    
     metadata_keys = [entry["key"] for entry in metadata]
     metadata_values = [entry["value"] for entry in metadata]
     
+    # ABI encoding must match TypeScript SDK:
+    # [payer (address), clientDataSetId (uint256), keys (string[]), values (string[]), signature (bytes)]
     encoded = abi_encode(
-        ["string[]", "string[]", "bytes"],
-        [metadata_keys, metadata_values, bytes.fromhex(signature[2:])],
+        ["address", "uint256", "string[]", "string[]", "bytes"],
+        [payer, client_data_set_id, metadata_keys, metadata_values, bytes.fromhex(signature[2:])],
     )
     return "0x" + encoded.hex()
 

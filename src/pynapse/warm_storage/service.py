@@ -44,7 +44,7 @@ class SyncWarmStorageService:
         self._view = web3.eth.contract(address=chain.contracts.warm_storage_state_view, abi=FWSS_VIEW_ABI)
 
     def get_data_set(self, data_set_id: int) -> DataSetInfo:
-        info = self._view.functions.getDataSet(data_set_id).call()[0]
+        info = self._view.functions.getDataSet(data_set_id).call()
         if int(info[0]) == 0:
             raise ValueError(f"Data set {data_set_id} does not exist")
         return DataSetInfo(
@@ -283,7 +283,7 @@ class AsyncWarmStorageService:
         self._view = web3.eth.contract(address=chain.contracts.warm_storage_state_view, abi=FWSS_VIEW_ABI)
 
     async def get_data_set(self, data_set_id: int) -> DataSetInfo:
-        info = (await self._view.functions.getDataSet(data_set_id).call())[0]
+        info = await self._view.functions.getDataSet(data_set_id).call()
         if int(info[0]) == 0:
             raise ValueError(f"Data set {data_set_id} does not exist")
         return DataSetInfo(
