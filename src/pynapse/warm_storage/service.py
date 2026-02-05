@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from eth_account import Account
@@ -23,6 +23,16 @@ class DataSetInfo:
     pdp_end_epoch: int
     provider_id: int
     data_set_id: int
+
+
+@dataclass
+class EnhancedDataSetInfo(DataSetInfo):
+    """Extended dataset info with live status, management info, and metadata."""
+    active_piece_count: int = 0
+    is_live: bool = False
+    is_managed: bool = False
+    with_cdn: bool = False
+    metadata: Dict[str, str] = field(default_factory=dict)
 
 
 class SyncWarmStorageService:
@@ -134,6 +144,120 @@ class SyncWarmStorageService:
         tx_hash = self._web3.eth.send_raw_transaction(signed.rawTransaction)
         return tx_hash.hex()
 
+    def get_approved_provider_ids(self) -> List[int]:
+        """Get list of all approved provider IDs for the warm storage service."""
+        provider_ids = self._fwss.functions.getApprovedProviderIds().call()
+        return [int(pid) for pid in provider_ids]
+
+    def get_active_piece_count(self, data_set_id: int) -> int:
+        """Get count of active pieces in a dataset (excludes removed pieces)."""
+        from pynapse.pdp import SyncPDPVerifier
+        verifier = SyncPDPVerifier(self._web3, self._chain)
+        return verifier.get_active_piece_count(data_set_id)
+
+    def data_set_live(self, data_set_id: int) -> bool:
+        """Check if a dataset is live."""
+        from pynapse.pdp import SyncPDPVerifier
+        verifier = SyncPDPVerifier(self._web3, self._chain)
+        return verifier.data_set_live(data_set_id)
+
+    def get_data_set_listener(self, data_set_id: int) -> str:
+        """Get the listener address for a dataset."""
+        from pynapse.pdp import SyncPDPVerifier
+        verifier = SyncPDPVerifier(self._web3, self._chain)
+        return verifier.get_data_set_listener(data_set_id)
+
+    def validate_data_set(self, data_set_id: int) -> None:
+        """
+        Validate that a dataset is live and managed by this WarmStorage contract.
+        
+        Raises:
+            ValueError: If dataset is not live or not managed by this contract.
+        """
+        if not self.data_set_live(data_set_id):
+            raise ValueError(f"Data set {data_set_id} does not exist or is not live")
+        
+        listener = self.get_data_set_listener(data_set_id)
+        if listener.lower() != self._chain.contracts.warm_storage.lower():
+            raise ValueError(
+                f"Data set {data_set_id} is not managed by this WarmStorage contract "
+                f"({self._chain.contracts.warm_storage}), managed by {listener}"
+            )
+
+    def terminate_data_set(self, account: str, data_set_id: int) -> str:
+        """
+        Terminate a dataset. This also removes all pieces in the dataset.
+        
+        Args:
+            account: The account address to send from
+            data_set_id: The ID of the dataset to terminate
+            
+        Returns:
+            Transaction hash
+        """
+        if not self._private_key:
+            raise ValueError("private_key required")
+        txn = self._fwss.functions.terminateDataSet(data_set_id).build_transaction(
+            {
+                "from": account,
+                "nonce": self._web3.eth.get_transaction_count(account),
+            }
+        )
+        signed = self._web3.eth.account.sign_transaction(txn, private_key=self._private_key)
+        tx_hash = self._web3.eth.send_raw_transaction(signed.rawTransaction)
+        return tx_hash.hex()
+
+    def get_client_data_sets_with_details(self, client_address: str) -> List[EnhancedDataSetInfo]:
+        """
+        Get all datasets for a client with enhanced details.
+        
+        Includes live status, management info, metadata, and piece counts.
+        
+        Args:
+            client_address: The client address to query
+            
+        Returns:
+            List of enhanced dataset info
+        """
+        from pynapse.pdp import SyncPDPVerifier
+        verifier = SyncPDPVerifier(self._web3, self._chain)
+        
+        data_sets = self.get_client_data_sets(client_address)
+        enhanced: List[EnhancedDataSetInfo] = []
+        
+        for ds in data_sets:
+            try:
+                is_live = verifier.data_set_live(ds.data_set_id)
+                listener = verifier.get_data_set_listener(ds.data_set_id) if is_live else ""
+                is_managed = listener.lower() == self._chain.contracts.warm_storage.lower() if listener else False
+                metadata = self.get_all_data_set_metadata(ds.data_set_id) if is_live else {}
+                active_piece_count = verifier.get_active_piece_count(ds.data_set_id) if is_live else 0
+                with_cdn = ds.cdn_rail_id > 0 and "withCDN" in metadata
+                
+                enhanced.append(EnhancedDataSetInfo(
+                    pdp_rail_id=ds.pdp_rail_id,
+                    cache_miss_rail_id=ds.cache_miss_rail_id,
+                    cdn_rail_id=ds.cdn_rail_id,
+                    payer=ds.payer,
+                    payee=ds.payee,
+                    service_provider=ds.service_provider,
+                    commission_bps=ds.commission_bps,
+                    client_data_set_id=ds.client_data_set_id,
+                    pdp_end_epoch=ds.pdp_end_epoch,
+                    provider_id=ds.provider_id,
+                    data_set_id=ds.data_set_id,
+                    active_piece_count=active_piece_count,
+                    is_live=is_live,
+                    is_managed=is_managed,
+                    with_cdn=with_cdn,
+                    metadata=metadata,
+                ))
+            except Exception as e:
+                # Skip datasets that fail to load details
+                continue
+        
+        return enhanced
+
 
 class AsyncWarmStorageService:
     def __init__(self, web3: AsyncWeb3, chain: Chain, private_key: Optional[str] = None) -> None:
@@ -243,3 +367,117 @@ class AsyncWarmStorageService:
         signed = Account.sign_transaction(txn, private_key=self._private_key)
         tx_hash = await self._web3.eth.send_raw_transaction(signed.rawTransaction)
         return tx_hash.hex()
+
+    async def get_approved_provider_ids(self) -> List[int]:
+        """Get list of all approved provider IDs for the warm storage service."""
+        provider_ids = await self._fwss.functions.getApprovedProviderIds().call()
+        return [int(pid) for pid in provider_ids]
+
+    async def get_active_piece_count(self, data_set_id: int) -> int:
+        """Get count of active pieces in a dataset (excludes removed pieces)."""
+        from pynapse.pdp import AsyncPDPVerifier
+        verifier = AsyncPDPVerifier(self._web3, self._chain)
+        return await verifier.get_active_piece_count(data_set_id)
+
+    async def data_set_live(self, data_set_id: int) -> bool:
+        """Check if a dataset is live."""
+        from pynapse.pdp import AsyncPDPVerifier
+        verifier = AsyncPDPVerifier(self._web3, self._chain)
+        return await verifier.data_set_live(data_set_id)
+
+    async def get_data_set_listener(self, data_set_id: int) -> str:
+        """Get the listener address for a dataset."""
+        from pynapse.pdp import AsyncPDPVerifier
+        verifier = AsyncPDPVerifier(self._web3, self._chain)
+        return await verifier.get_data_set_listener(data_set_id)
+
+    async def validate_data_set(self, data_set_id: int) -> None:
+        """
+        Validate that a dataset is live and managed by this WarmStorage contract.
+        
+        Raises:
+            ValueError: If dataset is not live or not managed by this contract.
+        """
+        if not await self.data_set_live(data_set_id):
+            raise ValueError(f"Data set {data_set_id} does not exist or is not live")
+        
+        listener = await self.get_data_set_listener(data_set_id)
+        if listener.lower() != self._chain.contracts.warm_storage.lower():
+            raise ValueError(
+                f"Data set {data_set_id} is not managed by this WarmStorage contract "
+                f"({self._chain.contracts.warm_storage}), managed by {listener}"
+            )
+
+    async def terminate_data_set(self, account: str, data_set_id: int) -> str:
+        """
+        Terminate a dataset. This also removes all pieces in the dataset.
+        
+        Args:
+            account: The account address to send from
+            data_set_id: The ID of the dataset to terminate
+            
+        Returns:
+            Transaction hash
+        """
+        if not self._private_key:
+            raise ValueError("private_key required")
+        txn = await self._fwss.functions.terminateDataSet(data_set_id).build_transaction(
+            {
+                "from": account,
+                "nonce": await self._web3.eth.get_transaction_count(account),
+            }
+        )
+        signed = Account.sign_transaction(txn, private_key=self._private_key)
+        tx_hash = await self._web3.eth.send_raw_transaction(signed.rawTransaction)
+        return tx_hash.hex()
+
+    async def get_client_data_sets_with_details(self, client_address: str) -> List[EnhancedDataSetInfo]:
+        """
+        Get all datasets for a client with enhanced details.
+        
+        Includes live status, management info, metadata, and piece counts.
+        
+        Args:
+            client_address: The client address to query
+            
+        Returns:
+            List of enhanced dataset info
+        """
+        from pynapse.pdp import AsyncPDPVerifier
+        verifier = AsyncPDPVerifier(self._web3, self._chain)
+        
+        data_sets = await self.get_client_data_sets(client_address)
+        enhanced: List[EnhancedDataSetInfo] = []
+        
+        for ds in data_sets:
+            try:
+                is_live = await verifier.data_set_live(ds.data_set_id)
+                listener = await verifier.get_data_set_listener(ds.data_set_id) if is_live else ""
+                is_managed = listener.lower() == self._chain.contracts.warm_storage.lower() if listener else False
+                metadata = await self.get_all_data_set_metadata(ds.data_set_id) if is_live else {}
+                active_piece_count = await verifier.get_active_piece_count(ds.data_set_id) if is_live else 0
+                with_cdn = ds.cdn_rail_id > 0 and "withCDN" in metadata
+                
+                enhanced.append(EnhancedDataSetInfo(
+                    pdp_rail_id=ds.pdp_rail_id,
+                    cache_miss_rail_id=ds.cache_miss_rail_id,
+                    cdn_rail_id=ds.cdn_rail_id,
+                    payer=ds.payer,
+                    payee=ds.payee,
+                    service_provider=ds.service_provider,
+                    commission_bps=ds.commission_bps,
+                    client_data_set_id=ds.client_data_set_id,
+                    pdp_end_epoch=ds.pdp_end_epoch,
+                    provider_id=ds.provider_id,
+                    data_set_id=ds.data_set_id,
+                    active_piece_count=active_piece_count,
+                    is_live=is_live,
+                    is_managed=is_managed,
+                    with_cdn=with_cdn,
+                    metadata=metadata,
+                ))
+            except Exception as e:
+                # Skip datasets that fail to load details
+                continue
+        
+        return enhanced

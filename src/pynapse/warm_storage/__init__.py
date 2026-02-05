@@ -1,3 +1,13 @@
-from .service import AsyncWarmStorageService, DataSetInfo, SyncWarmStorageService
+from .service import (
+    AsyncWarmStorageService,
+    DataSetInfo,
+    EnhancedDataSetInfo,
+    SyncWarmStorageService,
+)
 
-__all__ = ["AsyncWarmStorageService", "SyncWarmStorageService", "DataSetInfo"]
+__all__ = [
+    "AsyncWarmStorageService",
+    "SyncWarmStorageService",
+    "DataSetInfo",
+    "EnhancedDataSetInfo",
+]

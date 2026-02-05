@@ -54,3 +54,19 @@ class StorageContext:
 
     def download(self, piece_cid: str) -> bytes:
         return self._pdp.download_piece(piece_cid)
+
+    def has_piece(self, piece_cid: str) -> bool:
+        """
+        Check if a piece exists on this provider.
+        
+        Args:
+            piece_cid: The piece CID to check
+            
+        Returns:
+            True if the piece exists, False otherwise
+        """
+        try:
+            self._pdp.find_piece(piece_cid)
+            return True
+        except Exception:
+            return False

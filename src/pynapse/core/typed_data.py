@@ -156,6 +156,118 @@ def sign_add_pieces_extra_data(
     return "0x" + encoded.hex()
 
 
+def sign_delete_dataset(
+    private_key: str,
+    chain: Chain,
+    client_data_set_id: int,
+    verifying_contract: Optional[str] = None,
+) -> str:
+    """
+    Sign a DeleteDataSet typed data message.
+    
+    Args:
+        private_key: Private key to sign with
+        chain: Chain configuration
+        client_data_set_id: Client-side dataset identifier
+        verifying_contract: Optional override for verifying contract address
+        
+    Returns:
+        Hex-encoded signature
+    """
+    domain = get_storage_domain(chain, verifying_contract)
+    message = {
+        "clientDataSetId": int(client_data_set_id),
+    }
+    return _sign_typed_data(private_key, domain, "DeleteDataSet", message)
+
+
+def sign_delete_dataset_extra_data(
+    private_key: str,
+    chain: Chain,
+    client_data_set_id: int,
+    verifying_contract: Optional[str] = None,
+) -> str:
+    """
+    Create encoded extra data for delete dataset operation.
+    
+    This is the ABI-encoded format expected by the warm storage contract.
+    
+    Args:
+        private_key: Private key to sign with
+        chain: Chain configuration  
+        client_data_set_id: Client-side dataset identifier
+        verifying_contract: Optional override for verifying contract address
+        
+    Returns:
+        Hex-encoded extra data (ABI encoded signature)
+    """
+    signature = sign_delete_dataset(private_key, chain, client_data_set_id, verifying_contract)
+    encoded = abi_encode(["bytes"], [bytes.fromhex(signature[2:])])
+    return "0x" + encoded.hex()
+
+
+def sign_create_dataset_extra_data(
+    private_key: str,
+    chain: Chain,
+    client_data_set_id: int,
+    payee: str,
+    metadata: Optional[Sequence[Dict[str, str]]] = None,
+    verifying_contract: Optional[str] = None,
+) -> str:
+    """
+    Create encoded extra data for create dataset operation.
+    
+    This is the ABI-encoded format expected by the warm storage contract.
+    
+    Args:
+        private_key: Private key to sign with
+        chain: Chain configuration
+        client_data_set_id: Client-side dataset identifier
+        payee: Address to receive payments
+        metadata: Optional dataset metadata as list of {key, value} dicts
+        verifying_contract: Optional override for verifying contract address
+        
+    Returns:
+        Hex-encoded extra data
+    """
+    metadata = metadata or []
+    signature = sign_create_dataset(private_key, chain, client_data_set_id, payee, metadata, verifying_contract)
+    
+    metadata_keys = [entry["key"] for entry in metadata]
+    metadata_values = [entry["value"] for entry in metadata]
+    
+    encoded = abi_encode(
+        ["string[]", "string[]", "bytes"],
+        [metadata_keys, metadata_values, bytes.fromhex(signature[2:])],
+    )
+    return "0x" + encoded.hex()
+
+
+def sign_schedule_removals_extra_data(
+    private_key: str,
+    chain: Chain,
+    client_data_set_id: int,
+    piece_ids: Sequence[int],
+    verifying_contract: Optional[str] = None,
+) -> str:
+    """
+    Create encoded extra data for schedule piece removals operation.
+    
+    Args:
+        private_key: Private key to sign with
+        chain: Chain configuration
+        client_data_set_id: Client-side dataset identifier
+        piece_ids: List of piece IDs to schedule for removal
+        verifying_contract: Optional override for verifying contract address
+        
+    Returns:
+        Hex-encoded extra data
+    """
+    signature = sign_schedule_piece_removals(private_key, chain, client_data_set_id, piece_ids, verifying_contract)
+    encoded = abi_encode(["bytes"], [bytes.fromhex(signature[2:])])
+    return "0x" + encoded.hex()
+
+
 def sign_erc20_permit(
     private_key: str,
     name: str,
