@@ -10,6 +10,7 @@ from pynapse.core.chains import CALIBRATION, MAINNET, Chain, as_chain
 from pynapse.evm import AsyncEVMClient, SyncEVMClient
 from pynapse.payments import AsyncPaymentsService, SyncPaymentsService
 from pynapse.filbeam import FilBeamService
+from pynapse.retriever import ChainRetriever
 from pynapse.session import AsyncSessionKeyRegistry, SyncSessionKeyRegistry
 from pynapse.storage import StorageManager
 from pynapse.sp_registry import AsyncSPRegistryService, SyncSPRegistryService
@@ -25,12 +26,15 @@ class Synapse:
         self._payments = SyncPaymentsService(web3, chain, account_address, private_key)
         self._providers = SyncSPRegistryService(web3, chain, private_key)
         self._warm_storage = SyncWarmStorageService(web3, chain, private_key)
-        # Wire up storage manager with warm_storage and sp_registry for smart context creation
+        # Create retriever for SP-agnostic downloads
+        self._retriever = ChainRetriever(self._warm_storage, self._providers)
+        # Wire up storage manager with warm_storage, sp_registry, and retriever
         self._storage = StorageManager(
             chain=chain,
             private_key=private_key,
             sp_registry=self._providers,
             warm_storage=self._warm_storage,
+            retriever=self._retriever,
         )
         self._session_registry = SyncSessionKeyRegistry(web3, chain, private_key)
         self._filbeam = FilBeamService(chain)
@@ -79,6 +83,10 @@ class Synapse:
     @property
     def filbeam(self) -> FilBeamService:
         return self._filbeam
+
+    @property
+    def retriever(self) -> ChainRetriever:
+        return self._retriever
 
 
 class AsyncSynapse:

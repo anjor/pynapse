@@ -111,11 +111,13 @@ class StorageManager:
         private_key: str,
         sp_registry=None,
         warm_storage=None,
+        retriever=None,
     ) -> None:
         self._chain = chain
         self._private_key = private_key
         self._sp_registry = sp_registry
         self._warm_storage = warm_storage
+        self._retriever = retriever
         self._default_context: Optional[StorageContext] = None
         self._context_cache: Dict[int, StorageContext] = {}  # provider_id -> context
 
@@ -466,14 +468,19 @@ class StorageManager:
         piece_cid: str, 
         pdp_endpoint: Optional[str] = None,
         context: Optional[StorageContext] = None,
+        provider_address: Optional[str] = None,
     ) -> bytes:
         """
         Download data by piece CID.
         
+        If a retriever is configured, this method can perform SP-agnostic
+        downloads by querying the client's datasets to find providers.
+        
         Args:
             piece_cid: The piece CID to download
-            pdp_endpoint: PDP endpoint to download from
+            pdp_endpoint: PDP endpoint to download from (optional if retriever configured)
             context: Explicit context to use
+            provider_address: Optional specific provider address for retriever
             
         Returns:
             Downloaded data bytes
@@ -481,8 +488,21 @@ class StorageManager:
         if context is not None:
             return context.download(piece_cid)
         
+        # Try SP-agnostic download using retriever
+        if self._retriever is not None:
+            from eth_account import Account
+            acct = Account.from_key(self._private_key)
+            return self._retriever.fetch_piece(
+                piece_cid=piece_cid,
+                client_address=acct.address,
+                provider_address=provider_address,
+            )
+        
+        # Fall back to explicit endpoint
         if pdp_endpoint is None:
-            raise ValueError("pdp_endpoint required (or provide context)")
+            raise ValueError(
+                "pdp_endpoint required (or configure retriever for SP-agnostic downloads)"
+            )
         
         ctx = StorageContext(
             pdp_endpoint=pdp_endpoint,
