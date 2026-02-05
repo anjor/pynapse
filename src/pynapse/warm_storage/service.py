@@ -111,12 +111,27 @@ class SyncWarmStorageService:
     def proving_deadline(self, data_set_id: int) -> int:
         return int(self._view.functions.provingDeadline(data_set_id).call())
 
-    def get_approved_providers(self, data_set_id: int) -> List[int]:
-        providers = self._view.functions.getApprovedProviders(data_set_id).call()
+    def get_approved_providers(self, offset: int = 0, limit: int = 0) -> List[int]:
+        """
+        Get approved provider IDs with optional pagination.
+        
+        Args:
+            offset: Starting index (0-based). Use 0 to start from beginning.
+            limit: Maximum number of providers to return. Use 0 to get all remaining providers.
+            
+        Returns:
+            List of approved provider IDs.
+        """
+        providers = self._view.functions.getApprovedProviders(offset, limit).call()
         return [int(pid) for pid in providers]
 
-    def is_provider_approved(self, data_set_id: int, provider_id: int) -> bool:
-        return bool(self._view.functions.isProviderApproved(data_set_id, provider_id).call())
+    def get_approved_providers_length(self) -> int:
+        """Get the total count of approved providers."""
+        return int(self._view.functions.getApprovedProvidersLength().call())
+
+    def is_provider_approved(self, provider_id: int) -> bool:
+        """Check if a provider is approved for the warm storage service."""
+        return bool(self._view.functions.isProviderApproved(provider_id).call())
 
     def add_approved_provider(self, account: str, provider_id: int) -> str:
         if not self._private_key:
@@ -146,8 +161,8 @@ class SyncWarmStorageService:
 
     def get_approved_provider_ids(self) -> List[int]:
         """Get list of all approved provider IDs for the warm storage service."""
-        provider_ids = self._fwss.functions.getApprovedProviderIds().call()
-        return [int(pid) for pid in provider_ids]
+        # Use the view contract's getApprovedProviders with offset=0, limit=0 to get all
+        return self.get_approved_providers(offset=0, limit=0)
 
     def get_active_piece_count(self, data_set_id: int) -> int:
         """Get count of active pieces in a dataset (excludes removed pieces)."""
@@ -335,12 +350,27 @@ class AsyncWarmStorageService:
     async def proving_deadline(self, data_set_id: int) -> int:
         return int(await self._view.functions.provingDeadline(data_set_id).call())
 
-    async def get_approved_providers(self, data_set_id: int) -> List[int]:
-        providers = await self._view.functions.getApprovedProviders(data_set_id).call()
+    async def get_approved_providers(self, offset: int = 0, limit: int = 0) -> List[int]:
+        """
+        Get approved provider IDs with optional pagination.
+        
+        Args:
+            offset: Starting index (0-based). Use 0 to start from beginning.
+            limit: Maximum number of providers to return. Use 0 to get all remaining providers.
+            
+        Returns:
+            List of approved provider IDs.
+        """
+        providers = await self._view.functions.getApprovedProviders(offset, limit).call()
         return [int(pid) for pid in providers]
 
-    async def is_provider_approved(self, data_set_id: int, provider_id: int) -> bool:
-        return bool(await self._view.functions.isProviderApproved(data_set_id, provider_id).call())
+    async def get_approved_providers_length(self) -> int:
+        """Get the total count of approved providers."""
+        return int(await self._view.functions.getApprovedProvidersLength().call())
+
+    async def is_provider_approved(self, provider_id: int) -> bool:
+        """Check if a provider is approved for the warm storage service."""
+        return bool(await self._view.functions.isProviderApproved(provider_id).call())
 
     async def add_approved_provider(self, account: str, provider_id: int) -> str:
         if not self._private_key:
@@ -370,8 +400,8 @@ class AsyncWarmStorageService:
 
     async def get_approved_provider_ids(self) -> List[int]:
         """Get list of all approved provider IDs for the warm storage service."""
-        provider_ids = await self._fwss.functions.getApprovedProviderIds().call()
-        return [int(pid) for pid in provider_ids]
+        # Use the view contract's getApprovedProviders with offset=0, limit=0 to get all
+        return await self.get_approved_providers(offset=0, limit=0)
 
     async def get_active_piece_count(self, data_set_id: int) -> int:
         """Get count of active pieces in a dataset (excludes removed pieces)."""

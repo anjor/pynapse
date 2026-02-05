@@ -523,20 +523,16 @@ class StorageContext:
     def _get_pdp_endpoint(cls, sp_registry, provider_id: int) -> str:
         """Get the PDP service URL for a provider."""
         try:
-            # Product type 1 is typically PDP
-            product = sp_registry.get_provider_with_product(provider_id, 1)
+            product = sp_registry.get_provider_with_product(provider_id, 0)  # PDP product type
             # Look for serviceURL in capability values
             for i, key in enumerate(product.product.capability_keys):
                 if key == "serviceURL" and i < len(product.product_capability_values):
-                    return product.product_capability_values[i]
+                    val = product.product_capability_values[i]
+                    # Values are returned as bytes from the contract
+                    if isinstance(val, bytes):
+                        return val.decode('utf-8')
+                    return str(val)
         except Exception:
-            pass
-        
-        # Fallback: try to construct from provider info
-        provider = sp_registry.get_provider(provider_id)
-        if provider:
-            # Some providers might have the URL in their address or description
-            # This is a fallback - proper implementation needs product info
             pass
         
         raise ValueError(f"Could not find PDP endpoint for provider {provider_id}")

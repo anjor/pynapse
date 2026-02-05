@@ -48,7 +48,7 @@ CONTRACTS_BY_NETWORK: Dict[str, ChainContracts] = {
     NETWORK_MAINNET: ChainContracts(
         multicall3="0xcA11bde05977b3631167028862bE2a173976CA11",
         usdfc="0x80B98d3aa09ffff255c3ba4A241111Ff1262F045",
-        payments="0xC8C3C94aa8C60E0dFF060D4c3acBa0bC16e4e0ec",
+        payments="0xC8C3c94AA8c60E0DfF060d4C3aCbA0BC16e4e0eC",
         warm_storage="0x8408502033C418E1bbC97cE9ac48E5528F371A9f",
         warm_storage_state_view="0x9e4e6699d8F67dFc883d6b0A7344Bd56F7E80B46",
         sp_registry="0xf55dDbf63F1b55c3F1D4FA7e339a68AB7b64A5eB",
@@ -58,7 +58,7 @@ CONTRACTS_BY_NETWORK: Dict[str, ChainContracts] = {
     NETWORK_CALIBRATION: ChainContracts(
         multicall3="0xcA11bde05977b3631167028862bE2a173976CA11",
         usdfc="0xb3042734b608a1B16e9e86B374A3f3e389B4cDf0",
-        payments="0xD58af75a0F6ed91E8d416CAB72Ebae40E05ecD44",
+        payments="0xd58AF75a0f6eD91e8D416cab72EBAe40E05ECD44",
         warm_storage="0x02925630df557F957f70E112bA06e50965417CA0",
         warm_storage_state_view="0xA5D87b04086B1d591026cCE10255351B5AA4689B",
         sp_registry="0x839e5c9988e4e9977d40708d0094103c0839Ac9D",
