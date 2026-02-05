@@ -172,12 +172,14 @@ class SyncPaymentsService:
             self._chain.contracts.usdfc, self._account, service
         ).call()
         
-        # Result format: (isApproved, rateAllowance, lockupAllowance, maxLockupPeriod)
+        # Result format: (isApproved, rateAllowance, lockupAllowance, rateUsage, lockupUsage, maxLockupPeriod)
         return ServiceApproval(
             is_approved=bool(result[0]),
             rate_allowance=int(result[1]),
             lockup_allowance=int(result[2]),
-            max_lockup_period=int(result[3]),
+            max_lockup_period=int(result[5]),
+            rate_usage=int(result[3]),
+            lockup_usage=int(result[4]),
         )
 
     def approve_service(
@@ -552,11 +554,14 @@ class AsyncPaymentsService:
             self._chain.contracts.usdfc, self._account, service
         ).call()
         
+        # Result format: (isApproved, rateAllowance, lockupAllowance, rateUsage, lockupUsage, maxLockupPeriod)
         return ServiceApproval(
             is_approved=bool(result[0]),
             rate_allowance=int(result[1]),
             lockup_allowance=int(result[2]),
-            max_lockup_period=int(result[3]),
+            max_lockup_period=int(result[5]),
+            rate_usage=int(result[3]),
+            lockup_usage=int(result[4]),
         )
 
     async def approve_service(
