@@ -1,3 +1,3 @@
-from .service import AccountInfo, AsyncPaymentsService, SyncPaymentsService
+from .service import AccountInfo, AsyncPaymentsService, ServiceApproval, SyncPaymentsService
 
-__all__ = ["AccountInfo", "AsyncPaymentsService", "SyncPaymentsService"]
+__all__ = ["AccountInfo", "AsyncPaymentsService", "ServiceApproval", "SyncPaymentsService"]
