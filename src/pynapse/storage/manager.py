@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Callable, Dict, List, Optional, Sequence, Union
 
-from .context import StorageContext, UploadResult
+from .context import StorageContext, StorageContextOptions, UploadResult
 
 
 # Size and time constants matching TypeScript SDK
@@ -126,7 +126,7 @@ class StorageManager:
         client_data_set_id: int,
         provider_id: Optional[int] = None,
     ) -> StorageContext:
-        """Create a storage context for a specific provider/dataset."""
+        """Create a storage context for a specific provider/dataset (low-level)."""
         context = StorageContext(
             pdp_endpoint=pdp_endpoint,
             chain=self._chain,
@@ -137,6 +137,145 @@ class StorageManager:
         if provider_id is not None:
             self._context_cache[provider_id] = context
         return context
+
+    def get_context(
+        self,
+        provider_id: Optional[int] = None,
+        provider_address: Optional[str] = None,
+        data_set_id: Optional[int] = None,
+        with_cdn: bool = False,
+        force_create_data_set: bool = False,
+        metadata: Optional[Dict[str, str]] = None,
+        exclude_provider_ids: Optional[List[int]] = None,
+        on_provider_selected: Optional[Callable] = None,
+        on_data_set_resolved: Optional[Callable] = None,
+    ) -> StorageContext:
+        """
+        Get or create a storage context with smart provider/dataset selection.
+        
+        This is the recommended way to get a context - it handles provider
+        selection, dataset reuse, and dataset creation automatically.
+        
+        Args:
+            provider_id: Optional specific provider ID to use
+            provider_address: Optional specific provider address to use
+            data_set_id: Optional specific dataset ID to use
+            with_cdn: Whether to enable CDN services
+            force_create_data_set: Force creation of new dataset
+            metadata: Custom metadata for the dataset
+            exclude_provider_ids: Provider IDs to exclude from selection
+            on_provider_selected: Callback when provider is selected
+            on_data_set_resolved: Callback when dataset is resolved
+            
+        Returns:
+            Configured StorageContext
+        """
+        if self._warm_storage is None:
+            raise ValueError("warm_storage required for smart context creation")
+        if self._sp_registry is None:
+            raise ValueError("sp_registry required for smart context creation")
+        
+        # Check if we can reuse the default context
+        can_use_default = (
+            provider_id is None
+            and provider_address is None
+            and data_set_id is None
+            and not force_create_data_set
+            and self._default_context is not None
+        )
+        
+        if can_use_default:
+            # Check if metadata matches
+            from pynapse.utils.metadata import combine_metadata, metadata_matches
+            requested_metadata = combine_metadata(metadata, with_cdn)
+            if metadata_matches(self._default_context.data_set_metadata, requested_metadata):
+                return self._default_context
+        
+        # Create new context using factory method
+        options = StorageContextOptions(
+            provider_id=provider_id,
+            provider_address=provider_address,
+            data_set_id=data_set_id,
+            with_cdn=with_cdn,
+            force_create_data_set=force_create_data_set,
+            metadata=metadata,
+            exclude_provider_ids=exclude_provider_ids,
+            on_provider_selected=on_provider_selected,
+            on_data_set_resolved=on_data_set_resolved,
+        )
+        
+        context = StorageContext.create(
+            chain=self._chain,
+            private_key=self._private_key,
+            warm_storage=self._warm_storage,
+            sp_registry=self._sp_registry,
+            options=options,
+        )
+        
+        # Cache as default if no specific options were provided
+        if provider_id is None and provider_address is None and data_set_id is None:
+            self._default_context = context
+        
+        return context
+
+    def get_contexts(
+        self,
+        count: int = 2,
+        with_cdn: bool = False,
+        force_create_data_set: bool = False,
+        metadata: Optional[Dict[str, str]] = None,
+        exclude_provider_ids: Optional[List[int]] = None,
+        on_provider_selected: Optional[Callable] = None,
+        on_data_set_resolved: Optional[Callable] = None,
+    ) -> List[StorageContext]:
+        """
+        Get or create multiple storage contexts for multi-provider redundancy.
+        
+        Args:
+            count: Number of contexts to create (default: 2)
+            with_cdn: Whether to enable CDN services
+            force_create_data_set: Force creation of new datasets
+            metadata: Custom metadata for datasets
+            exclude_provider_ids: Provider IDs to exclude from selection
+            on_provider_selected: Callback when provider is selected
+            on_data_set_resolved: Callback when dataset is resolved
+            
+        Returns:
+            List of configured StorageContext instances
+        """
+        if self._warm_storage is None:
+            raise ValueError("warm_storage required for smart context creation")
+        if self._sp_registry is None:
+            raise ValueError("sp_registry required for smart context creation")
+        
+        options = StorageContextOptions(
+            with_cdn=with_cdn,
+            force_create_data_set=force_create_data_set,
+            metadata=metadata,
+            exclude_provider_ids=exclude_provider_ids,
+            on_provider_selected=on_provider_selected,
+            on_data_set_resolved=on_data_set_resolved,
+        )
+        
+        return StorageContext.create_contexts(
+            chain=self._chain,
+            private_key=self._private_key,
+            warm_storage=self._warm_storage,
+            sp_registry=self._sp_registry,
+            count=count,
+            options=options,
+        )
+
+    def get_default_context(self) -> StorageContext:
+        """
+        Get the default storage context, creating one if needed.
+        
+        Returns:
+            The default StorageContext
+        """
+        if self._default_context is None:
+            self._default_context = self.get_context()
+        return self._default_context
 
     def select_providers(
         self,
@@ -248,18 +387,26 @@ class StorageManager:
         provider_id: Optional[int] = None,
         metadata: Optional[Dict[str, str]] = None,
         context: Optional[StorageContext] = None,
+        with_cdn: bool = False,
+        auto_create_context: bool = True,
     ) -> UploadResult:
         """
         Upload data to storage.
         
+        If warm_storage and sp_registry are configured, this method can
+        auto-create a context with smart provider selection. Otherwise,
+        explicit context parameters are required.
+        
         Args:
             data: Bytes to upload
-            pdp_endpoint: PDP server endpoint (required if no context)
-            data_set_id: Dataset ID (required if no context)
-            client_data_set_id: Client dataset ID (required if no context)
-            provider_id: Optional provider ID for caching
+            pdp_endpoint: PDP server endpoint (required if no auto-create)
+            data_set_id: Dataset ID (required if no auto-create)
+            client_data_set_id: Client dataset ID (required if no auto-create)
+            provider_id: Optional provider ID for selection/caching
             metadata: Optional piece metadata
             context: Explicit context to use (overrides other params)
+            with_cdn: Enable CDN services (for auto-create)
+            auto_create_context: Auto-create context if services available (default: True)
             
         Returns:
             Upload result with piece CID and tx hash
@@ -271,9 +418,20 @@ class StorageManager:
         if provider_id is not None and provider_id in self._context_cache:
             return self._context_cache[provider_id].upload(data, metadata=metadata)
         
-        # Create new context
+        # Try auto-create if services are available
+        if auto_create_context and self._warm_storage is not None and self._sp_registry is not None:
+            ctx = self.get_context(
+                provider_id=provider_id,
+                with_cdn=with_cdn,
+            )
+            return ctx.upload(data, metadata=metadata)
+        
+        # Fall back to explicit context creation
         if pdp_endpoint is None or data_set_id is None or client_data_set_id is None:
-            raise ValueError("pdp_endpoint, data_set_id, and client_data_set_id required (or provide context)")
+            raise ValueError(
+                "pdp_endpoint, data_set_id, and client_data_set_id required "
+                "(or configure warm_storage and sp_registry for auto-creation)"
+            )
         
         ctx = self.create_context(pdp_endpoint, data_set_id, client_data_set_id, provider_id)
         return ctx.upload(data, metadata=metadata)

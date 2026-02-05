@@ -1,4 +1,9 @@
-from .context import StorageContext, UploadResult
+from .context import (
+    ProviderSelectionResult,
+    StorageContext,
+    StorageContextOptions,
+    UploadResult,
+)
 from .manager import (
     DataSetMatch,
     PreflightInfo,
@@ -13,8 +18,10 @@ __all__ = [
     "DataSetMatch",
     "PreflightInfo",
     "ProviderFilter",
+    "ProviderSelectionResult",
     "ServiceParameters",
     "StorageContext",
+    "StorageContextOptions",
     "StorageInfo",
     "StorageManager",
     "StoragePricing",
