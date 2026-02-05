@@ -574,8 +574,12 @@ class StorageContext:
         
         info = calculate_piece_cid(data)
         
-        # Upload to PDP server
-        self._pdp.upload_piece(data, info.piece_cid)
+        # Upload to PDP server (include padded_piece_size for PieceCIDv1)
+        self._pdp.upload_piece(data, info.piece_cid, info.padded_piece_size)
+        
+        # Wait for piece to be indexed before adding to dataset
+        # The PDP server needs time to process and index uploaded pieces
+        self._pdp.wait_for_piece(info.piece_cid, timeout_seconds=60, poll_interval=2)
         
         if on_upload_complete:
             try:
@@ -628,8 +632,12 @@ class StorageContext:
         for data in data_items:
             self._validate_size(len(data))
             info = calculate_piece_cid(data)
-            self._pdp.upload_piece(data, info.piece_cid)
+            self._pdp.upload_piece(data, info.piece_cid, info.padded_piece_size)
             piece_infos.append(info)
+        
+        # Wait for all pieces to be indexed before adding to dataset
+        for info in piece_infos:
+            self._pdp.wait_for_piece(info.piece_cid, timeout_seconds=60, poll_interval=2)
         
         # Batch add pieces
         pieces = [
