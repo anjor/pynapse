@@ -111,7 +111,7 @@ class PDPServer:
             time.sleep(poll_interval)
         raise TimeoutError("Timed out waiting for piece addition")
 
-    def upload_piece(self, data: bytes, piece_cid: str) -> UploadPieceResponse:
+    def upload_piece(self, data: bytes, piece_cid: str, padded_piece_size: int = 0) -> UploadPieceResponse:
         create_resp = self._client.post(f"{self._endpoint}/pdp/piece/uploads")
         if create_resp.status_code != 201:
             raise RuntimeError(f"failed to create upload session: {create_resp.text}")
@@ -131,9 +131,14 @@ class PDPServer:
         if upload_resp.status_code != 204:
             raise RuntimeError(f"upload failed: {upload_resp.text}")
 
+        # PieceCIDv1 requires size to be provided (padded piece size)
+        finalize_body = {"pieceCid": piece_cid}
+        if padded_piece_size > 0:
+            finalize_body["size"] = padded_piece_size
+        
         finalize_resp = self._client.post(
             f"{self._endpoint}/pdp/piece/uploads/{upload_uuid}",
-            json={"pieceCid": piece_cid},
+            json=finalize_body,
         )
         if finalize_resp.status_code != 200:
             raise RuntimeError(f"finalize failed: {finalize_resp.text}")
@@ -263,7 +268,7 @@ class AsyncPDPServer:
             await asyncio.sleep(poll_interval)
         raise TimeoutError("Timed out waiting for piece addition")
 
-    async def upload_piece(self, data: bytes, piece_cid: str) -> UploadPieceResponse:
+    async def upload_piece(self, data: bytes, piece_cid: str, padded_piece_size: int = 0) -> UploadPieceResponse:
         create_resp = await self._client.post(f"{self._endpoint}/pdp/piece/uploads")
         if create_resp.status_code != 201:
             raise RuntimeError(f"failed to create upload session: {create_resp.text}")
@@ -283,9 +288,14 @@ class AsyncPDPServer:
         if upload_resp.status_code != 204:
             raise RuntimeError(f"upload failed: {upload_resp.text}")
 
+        # PieceCIDv1 requires size to be provided (padded piece size)
+        finalize_body = {"pieceCid": piece_cid}
+        if padded_piece_size > 0:
+            finalize_body["size"] = padded_piece_size
+        
         finalize_resp = await self._client.post(
             f"{self._endpoint}/pdp/piece/uploads/{upload_uuid}",
-            json={"pieceCid": piece_cid},
+            json=finalize_body,
         )
         if finalize_resp.status_code != 200:
             raise RuntimeError(f"finalize failed: {finalize_resp.text}")

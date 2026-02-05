@@ -187,12 +187,10 @@ class AsyncStorageContext:
             # Need to create a new dataset
             pdp = AsyncPDPServer(resolution.pdp_endpoint)
             
-            # Get next client_data_set_id by counting existing datasets
-            try:
-                existing = await warm_storage.get_client_data_sets(acct.address)
-                next_client_id = len(existing) + 1
-            except Exception:
-                next_client_id = 1
+            # Use a random client_data_set_id like the TypeScript SDK does
+            # This ensures uniqueness and avoids collisions with existing datasets
+            from pynapse.core.rand import rand_u256
+            next_client_id = rand_u256()
             
             # Convert metadata dict to list of {key, value} entries
             metadata_entries = metadata_object_to_entries(requested_metadata)
@@ -578,8 +576,12 @@ class AsyncStorageContext:
         
         info = calculate_piece_cid(data)
         
-        # Upload to PDP server
-        await self._pdp.upload_piece(data, info.piece_cid)
+        # Upload to PDP server (include padded_piece_size for PieceCIDv1)
+        await self._pdp.upload_piece(data, info.piece_cid, info.padded_piece_size)
+        
+        # Wait for piece to be indexed before adding to dataset
+        # The PDP server needs time to process and index uploaded pieces
+        await self._pdp.wait_for_piece(info.piece_cid, timeout_seconds=60, poll_interval=2)
         
         if on_upload_complete:
             try:
@@ -632,8 +634,12 @@ class AsyncStorageContext:
         for data in data_items:
             self._validate_size(len(data))
             info = calculate_piece_cid(data)
-            await self._pdp.upload_piece(data, info.piece_cid)
+            await self._pdp.upload_piece(data, info.piece_cid, info.padded_piece_size)
             piece_infos.append(info)
+        
+        # Wait for all pieces to be indexed before adding to dataset
+        for info in piece_infos:
+            await self._pdp.wait_for_piece(info.piece_cid, timeout_seconds=60, poll_interval=2)
         
         # Batch add pieces
         pieces = [
