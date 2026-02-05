@@ -345,6 +345,7 @@ class StorageManager:
         provider_count: int = 1,
         duration_epochs: int = 2880,  # ~1 day default
         filter: Optional[ProviderFilter] = None,
+        with_cdn: bool = False,
     ) -> PreflightInfo:
         """
         Estimate storage costs before upload.
@@ -354,6 +355,7 @@ class StorageManager:
             provider_count: Number of providers for redundancy
             duration_epochs: Storage duration in epochs
             filter: Optional provider filter criteria
+            with_cdn: Whether to include CDN in cost estimation
             
         Returns:
             Preflight estimation including costs
@@ -361,13 +363,32 @@ class StorageManager:
         # Select providers
         providers = self.select_providers(count=provider_count, filter=filter)
         
-        # Calculate costs (simplified - would need pricing data from providers)
-        # Filecoin epoch is ~30 seconds, so 2880 epochs ≈ 1 day
-        # Pricing is typically per TiB per day
-        TIB = 1024 ** 4
+        # Try to get actual pricing from warm storage
+        if self._warm_storage is not None:
+            try:
+                pricing_rates = self._warm_storage.get_current_pricing_rates()
+                if isinstance(pricing_rates, (list, tuple)) and len(pricing_rates) >= 3:
+                    price_per_tib_month = int(pricing_rates[1] if with_cdn else pricing_rates[0])
+                    epochs_per_month = int(pricing_rates[2])
+                    
+                    # Calculate rate per epoch for this size
+                    price_per_tib_epoch = price_per_tib_month // epochs_per_month if epochs_per_month else 0
+                    estimated_rate = (size_bytes * price_per_tib_epoch * provider_count) // TIB
+                    estimated_rate = max(1, estimated_rate)  # minimum 1 unit
+                    estimated_total = estimated_rate * duration_epochs
+                    
+                    return PreflightInfo(
+                        size_bytes=size_bytes,
+                        estimated_cost_per_epoch=estimated_rate,
+                        estimated_total_cost=estimated_total,
+                        duration_epochs=duration_epochs,
+                        provider_count=len(providers),
+                        providers=providers,
+                    )
+            except Exception:
+                pass
         
-        # Placeholder cost calculation
-        # Real implementation would fetch rates from warm_storage service
+        # Fallback: simplified cost calculation
         estimated_rate = size_bytes * provider_count // TIB + 1  # minimum 1 unit
         estimated_total = estimated_rate * duration_epochs
         
@@ -379,6 +400,95 @@ class StorageManager:
             provider_count=len(providers),
             providers=providers,
         )
+
+    def preflight_upload(
+        self,
+        size_bytes: int,
+        with_cdn: bool = False,
+        payments_service=None,
+    ) -> dict:
+        """
+        Comprehensive preflight check including cost estimation and allowance validation.
+        
+        This method checks:
+        1. Storage costs per epoch/day/month
+        2. Current service allowances (if payments_service provided)
+        3. Whether allowances are sufficient
+        
+        Args:
+            size_bytes: Size of data to upload in bytes
+            with_cdn: Whether CDN is enabled
+            payments_service: Optional PaymentsService for allowance checking
+            
+        Returns:
+            Dict with estimated_cost, allowance_check, and any required actions
+        """
+        result = {
+            "estimated_cost": {
+                "per_epoch": 0,
+                "per_day": 0,
+                "per_month": 0,
+            },
+            "allowance_check": {
+                "sufficient": True,
+                "message": None,
+            },
+            "size_bytes": size_bytes,
+            "with_cdn": with_cdn,
+        }
+        
+        # Get pricing
+        if self._warm_storage is not None:
+            try:
+                pricing_rates = self._warm_storage.get_current_pricing_rates()
+                if isinstance(pricing_rates, (list, tuple)) and len(pricing_rates) >= 3:
+                    price_per_tib_month = int(pricing_rates[1] if with_cdn else pricing_rates[0])
+                    epochs_per_month = int(pricing_rates[2])
+                    
+                    # Calculate costs
+                    size_ratio = size_bytes / TIB
+                    cost_per_month = int(price_per_tib_month * size_ratio)
+                    cost_per_day = cost_per_month // DAYS_PER_MONTH
+                    cost_per_epoch = cost_per_month // epochs_per_month if epochs_per_month else 0
+                    
+                    result["estimated_cost"] = {
+                        "per_epoch": cost_per_epoch,
+                        "per_day": cost_per_day,
+                        "per_month": cost_per_month,
+                    }
+            except Exception:
+                pass
+        
+        # Check allowances if payments service provided
+        if payments_service is not None and self._chain is not None:
+            try:
+                approval = payments_service.service_approval(
+                    self._chain.contracts.warm_storage
+                )
+                
+                rate_needed = result["estimated_cost"]["per_epoch"]
+                # Lockup = rate * lockup_period (typically 10 days)
+                lockup_period = EPOCHS_PER_DAY * 10
+                lockup_needed = rate_needed * lockup_period
+                
+                rate_sufficient = approval.rate_allowance >= rate_needed
+                lockup_sufficient = approval.lockup_allowance >= lockup_needed
+                
+                result["allowance_check"] = {
+                    "sufficient": rate_sufficient and lockup_sufficient,
+                    "is_approved": approval.is_approved,
+                    "rate_allowance": approval.rate_allowance,
+                    "lockup_allowance": approval.lockup_allowance,
+                    "rate_needed": rate_needed,
+                    "lockup_needed": lockup_needed,
+                    "message": None if (rate_sufficient and lockup_sufficient) else (
+                        f"Insufficient allowances: need rate={rate_needed}, lockup={lockup_needed}"
+                    ),
+                }
+            except Exception as e:
+                result["allowance_check"]["message"] = f"Failed to check allowances: {e}"
+        
+        return result
 
     def upload(
         self, 
