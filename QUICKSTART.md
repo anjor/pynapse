@@ -17,10 +17,10 @@
 git clone https://github.com/anjor/pynapse.git
 cd pynapse
 
-# Create venv and install
+# Create venv and install from PyPI
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e .
+pip install synapse-filecoin-sdk
 ```
 
 ## Step 2: Build stream-commp Helper

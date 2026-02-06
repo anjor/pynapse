@@ -1,5 +1,5 @@
 [project]
-name = "pynapse"
+name = "synapse-filecoin-sdk"
 version = "0.1.0"
 description = "Python SDK for Filecoin Onchain Cloud (Synapse)"
 readme = "README.md"

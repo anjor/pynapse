@@ -15,6 +15,15 @@ uv venv
 uv pip install -e .[test]
 ```
 
+PyPI package name: `synapse-filecoin-sdk`  
+Python import: `pynapse`
+
+## Install (PyPI)
+
+```bash
+pip install synapse-filecoin-sdk
+```
+
 ## CommP / PieceCID
 
 `pynapse` uses `stream-commp` from `go-fil-commp-hashhash` for PieceCID calculation.
@@ -23,3 +32,18 @@ Set `PYNAPSE_COMMP_HELPER` to override the helper path.
 ## License
 
 Dual-licensed under Apache-2.0 OR MIT. See `LICENSE.md`.
+
+## Publishing to PyPI
+
+Publishing is automated via GitHub Actions in `.github/workflows/publish-pypi.yml`.
+
+1. In PyPI, create the project (or use an existing one) and configure a Trusted Publisher for this GitHub repository and workflow.
+2. In GitHub, optionally protect the `pypi` environment for manual approval.
+3. Tag a release and push the tag:
+
+```bash
+git tag v0.1.1
+git push origin v0.1.1
+```
+
+The workflow builds the package, runs `twine check`, and publishes to PyPI via OIDC (no API token required).
