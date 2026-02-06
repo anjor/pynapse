@@ -27,7 +27,28 @@ pip install synapse-filecoin-sdk
 ## CommP / PieceCID
 
 `pynapse` uses `stream-commp` from `go-fil-commp-hashhash` for PieceCID calculation.
-Set `PYNAPSE_COMMP_HELPER` to override the helper path.
+
+### Install `stream-commp`
+
+`stream-commp` is an external runtime dependency and is not installed by `pip`.
+
+```bash
+git clone https://github.com/filecoin-project/go-fil-commp-hashhash.git
+cd go-fil-commp-hashhash/cmd/stream-commp
+go build -o stream-commp .
+```
+
+Install it to your PATH (for example `/usr/local/bin`) or set:
+
+```bash
+export PYNAPSE_COMMP_HELPER=/absolute/path/to/stream-commp
+```
+
+Verify:
+
+```bash
+stream-commp --help
+```
 
 ## License
 

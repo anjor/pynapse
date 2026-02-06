@@ -1,13 +1,14 @@
 import os
+import shutil
 from pathlib import Path
 
 import pytest
 
-from pynapse.core.piece import DEFAULT_STREAM_COMMP_PATH, calculate_piece_cid
+from pynapse.core.piece import calculate_piece_cid
 
 
 @pytest.mark.skipif(
-    not (DEFAULT_STREAM_COMMP_PATH.exists() or os.environ.get("PYNAPSE_COMMP_HELPER")),
+    not (shutil.which("stream-commp") or os.environ.get("PYNAPSE_COMMP_HELPER")),
     reason="stream-commp helper not available",
 )
 def test_calculate_piece_cid_zero_block():

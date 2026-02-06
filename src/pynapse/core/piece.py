@@ -11,11 +11,6 @@ from typing import BinaryIO, Optional, Union
 
 from .errors import create_error
 
-
-DEFAULT_STREAM_COMMP_PATH = Path(
-    "/Users/anjor/repos/filecoin-project/go-fil-commp-hashhash/cmd/stream-commp/stream-commp"
-)
-
 # Multicodec constants
 RAW_CODEC = 0x55  # raw codec for PieceCIDv2
 FIL_COMMITMENT_UNSEALED = 0xf101  # fil-commitment-unsealed for PieceCIDv1
@@ -178,9 +173,6 @@ def _resolve_commp_helper() -> Path:
     if override:
         return Path(override)
 
-    if DEFAULT_STREAM_COMMP_PATH.exists():
-        return DEFAULT_STREAM_COMMP_PATH
-
     found = shutil.which("stream-commp")
     if found:
         return Path(found)
@@ -188,7 +180,10 @@ def _resolve_commp_helper() -> Path:
     raise create_error(
         "piece",
         "calculate",
-        "stream-commp helper not found. Set PYNAPSE_COMMP_HELPER or install stream-commp.",
+        (
+            "stream-commp helper not found. Install stream-commp and ensure it is on PATH, "
+            "or set PYNAPSE_COMMP_HELPER=/absolute/path/to/stream-commp."
+        ),
     )
 
 
