@@ -24,6 +24,30 @@ Python import: `pynapse`
 pip install synapse-filecoin-sdk
 ```
 
+## Supported Networks
+
+Both **Filecoin Mainnet** and **Calibration testnet** are supported:
+
+```python
+from pynapse import AsyncSynapse
+
+# Mainnet
+synapse = await AsyncSynapse.create(
+    rpc_url="https://api.node.glif.io/rpc/v1",
+    chain="mainnet",
+    private_key=PRIVATE_KEY
+)
+
+# Calibration testnet (for testing)
+synapse = await AsyncSynapse.create(
+    rpc_url="https://api.calibration.node.glif.io/rpc/v1",
+    chain="calibration",
+    private_key=PRIVATE_KEY
+)
+```
+
+See [QUICKSTART.md](QUICKSTART.md) for a full tutorial using Calibration testnet.
+
 ## CommP / PieceCID
 
 `pynapse` uses `stream-commp` from `go-fil-commp-hashhash` for PieceCID calculation.
