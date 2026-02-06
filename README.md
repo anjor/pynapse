@@ -87,8 +87,8 @@ Publishing is automated via GitHub Actions in `.github/workflows/publish-pypi.ym
 3. Tag a release and push the tag:
 
 ```bash
-git tag v0.1.1
-git push origin v0.1.1
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 The workflow builds the package, runs `twine check`, and publishes to PyPI via OIDC (no API token required).
