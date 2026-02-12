@@ -351,6 +351,126 @@ class TestPreflightInfo:
         assert len(info.providers) == 2
 
 
+class TestResolveByDataSetId:
+    """Tests for _resolve_by_data_set_id metadata and provider consistency checks."""
+
+    def _make_mock_sp_registry(self, provider_id=1):
+        sp = MagicMock()
+        sp.get_provider = MagicMock(return_value=MockProviderInfo(
+            provider_id=provider_id,
+            service_provider=f"0xProvider{provider_id}",
+            payee=f"0xPayee{provider_id}",
+            name=f"Provider {provider_id}",
+            description="Test provider",
+            is_active=True,
+        ))
+        sp.get_provider_by_address = MagicMock(return_value=MockProviderInfo(
+            provider_id=provider_id,
+            service_provider=f"0xProvider{provider_id}",
+            payee=f"0xPayee{provider_id}",
+            name=f"Provider {provider_id}",
+            description="Test provider",
+            is_active=True,
+        ))
+        mock_product = MagicMock()
+        mock_product.capability_keys = ["serviceURL"]
+        mock_with_product = MagicMock()
+        mock_with_product.product = mock_product
+        mock_with_product.product_capability_values = ["http://pdp.test.com"]
+        sp.get_provider_with_product = MagicMock(return_value=mock_with_product)
+        return sp
+
+    def _make_mock_warm_storage(self, payer="0xClient", provider_id=1, metadata=None):
+        ws = MagicMock()
+        ds_info = MockDataSetInfo(
+            pdp_rail_id=1,
+            cache_miss_rail_id=0,
+            cdn_rail_id=0,
+            payer=payer,
+            payee="0xPayee",
+            service_provider=f"0xProvider{provider_id}",
+            commission_bps=0,
+            client_data_set_id=1,
+            pdp_end_epoch=0,
+            provider_id=provider_id,
+            data_set_id=42,
+        )
+        ws.validate_data_set = MagicMock()
+        ws.get_data_set = MagicMock(return_value=ds_info)
+        ws.get_all_data_set_metadata = MagicMock(return_value=metadata if metadata is not None else {})
+        return ws
+
+    def test_resolve_by_data_set_id_metadata_mismatch_raises(self):
+        """Specifying data_set_id + with_cdn=True but dataset has no CDN metadata should raise."""
+        from pynapse.storage.context import StorageContext, StorageContextOptions
+
+        ws = self._make_mock_warm_storage(metadata={})
+        sp = self._make_mock_sp_registry()
+
+        with pytest.raises(ValueError, match="does not match requested metadata"):
+            StorageContext._resolve_by_data_set_id(
+                data_set_id=42,
+                client_address="0xClient",
+                warm_storage=ws,
+                sp_registry=sp,
+                requested_metadata={"withCDN": ""},
+                options=StorageContextOptions(data_set_id=42, with_cdn=True),
+            )
+
+    def test_resolve_by_data_set_id_metadata_match_succeeds(self):
+        """Specifying data_set_id + metadata that matches the dataset should succeed."""
+        from pynapse.storage.context import StorageContext, StorageContextOptions
+
+        ws = self._make_mock_warm_storage(metadata={"withCDN": ""})
+        sp = self._make_mock_sp_registry()
+
+        result = StorageContext._resolve_by_data_set_id(
+            data_set_id=42,
+            client_address="0xClient",
+            warm_storage=ws,
+            sp_registry=sp,
+            requested_metadata={"withCDN": ""},
+            options=StorageContextOptions(data_set_id=42, with_cdn=True),
+        )
+        assert result.data_set_id == 42
+        assert result.is_existing is True
+
+    def test_resolve_by_data_set_id_no_metadata_skips_check(self):
+        """Specifying data_set_id with no metadata options should succeed regardless of dataset metadata."""
+        from pynapse.storage.context import StorageContext, StorageContextOptions
+
+        ws = self._make_mock_warm_storage(metadata={"withCDN": ""})
+        sp = self._make_mock_sp_registry()
+
+        result = StorageContext._resolve_by_data_set_id(
+            data_set_id=42,
+            client_address="0xClient",
+            warm_storage=ws,
+            sp_registry=sp,
+            requested_metadata={},
+            options=StorageContextOptions(data_set_id=42),
+        )
+        assert result.data_set_id == 42
+        assert result.is_existing is True
+
+    def test_resolve_by_data_set_id_provider_id_mismatch_raises(self):
+        """Specifying data_set_id + provider_id that doesn't match the dataset's provider should raise."""
+        from pynapse.storage.context import StorageContext, StorageContextOptions
+
+        ws = self._make_mock_warm_storage(provider_id=1)
+        sp = self._make_mock_sp_registry(provider_id=1)
+
+        with pytest.raises(ValueError, match="belongs to provider 1.*not the requested provider 99"):
+            StorageContext._resolve_by_data_set_id(
+                data_set_id=42,
+                client_address="0xClient",
+                warm_storage=ws,
+                sp_registry=sp,
+                requested_metadata={},
+                options=StorageContextOptions(data_set_id=42, provider_id=99),
+            )
+
+
 class TestStoragePricing:
     """Tests for StoragePricing dataclass."""
 
