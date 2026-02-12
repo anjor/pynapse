@@ -317,6 +317,8 @@ class AsyncStorageContext:
                 client_address=client_address,
                 warm_storage=warm_storage,
                 sp_registry=sp_registry,
+                requested_metadata=requested_metadata,
+                options=options,
             )
         
         # 2. If explicit provider_id provided
@@ -361,24 +363,48 @@ class AsyncStorageContext:
         client_address: str,
         warm_storage: "AsyncWarmStorageService",
         sp_registry: "AsyncSPRegistryService",
+        requested_metadata: Optional[Dict[str, str]] = None,
+        options: Optional[AsyncStorageContextOptions] = None,
     ) -> AsyncProviderSelectionResult:
         """Resolve using explicit dataset ID."""
         await warm_storage.validate_data_set(data_set_id)
         ds_info = await warm_storage.get_data_set(data_set_id)
-        
+
         if ds_info.payer.lower() != client_address.lower():
             raise ValueError(
                 f"Data set {data_set_id} is not owned by {client_address} (owned by {ds_info.payer})"
             )
-        
+
+        # Provider consistency check: if user specified a provider, verify it matches the dataset
+        if options is not None:
+            if options.provider_id is not None and options.provider_id != ds_info.provider_id:
+                raise ValueError(
+                    f"Data set {data_set_id} belongs to provider {ds_info.provider_id}, "
+                    f"not the requested provider {options.provider_id}"
+                )
+            if options.provider_address is not None:
+                provider_by_addr = await sp_registry.get_provider_by_address(options.provider_address)
+                if provider_by_addr is not None and provider_by_addr.provider_id != ds_info.provider_id:
+                    raise ValueError(
+                        f"Data set {data_set_id} belongs to provider {ds_info.provider_id}, "
+                        f"not the requested provider address {options.provider_address}"
+                    )
+
         provider = await sp_registry.get_provider(ds_info.provider_id)
         if provider is None:
             raise ValueError(f"Provider ID {ds_info.provider_id} for data set {data_set_id} not found")
-        
+
         # Get PDP endpoint from provider product info
         pdp_endpoint = await cls._get_pdp_endpoint(sp_registry, provider.provider_id)
         metadata = await warm_storage.get_all_data_set_metadata(data_set_id)
-        
+
+        # Metadata consistency check: if user requested specific metadata, verify it matches
+        if requested_metadata and not metadata_matches(metadata, requested_metadata):
+            raise ValueError(
+                f"Data set {data_set_id} metadata {metadata} does not match "
+                f"requested metadata {requested_metadata}"
+            )
+
         return AsyncProviderSelectionResult(
             provider=provider,
             pdp_endpoint=pdp_endpoint,
