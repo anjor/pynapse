@@ -17,6 +17,18 @@ from .types import (
 )
 
 
+class IdempotencyError(Exception):
+    """Raised when an idempotency conflict is detected."""
+    pass
+
+
+class AlreadyExistsError(Exception):
+    """Raised when a resource already exists (e.g., duplicate dataset/piece)."""
+    def __init__(self, message: str, existing_resource_id: Optional[str] = None):
+        super().__init__(message)
+        self.existing_resource_id = existing_resource_id
+
+
 class PDPServer:
     def __init__(self, endpoint: str, timeout_seconds: int = 300) -> None:
         self._endpoint = endpoint.rstrip("/")
@@ -27,13 +39,58 @@ class PDPServer:
     def endpoint(self) -> str:
         return self._endpoint
 
-    def create_data_set(self, record_keeper: str, extra_data: str) -> CreateDataSetResponse:
+    def create_data_set(
+        self,
+        record_keeper: str,
+        extra_data: str,
+        idempotency_key: Optional[str] = None
+    ) -> CreateDataSetResponse:
+        """
+        Create a new data set.
+
+        Args:
+            record_keeper: Address of the record keeper contract
+            extra_data: Signed extra data for dataset creation
+            idempotency_key: Optional idempotency key for safe retries
+
+        Returns:
+            CreateDataSetResponse with transaction hash and status URL
+
+        Raises:
+            AlreadyExistsError: If dataset already exists (409 status)
+            IdempotencyError: If idempotency key conflicts (422 status)
+            RuntimeError: For other server errors
+        """
+        headers = {}
+        if idempotency_key:
+            headers["Idempotency-Key"] = idempotency_key
+
         resp = self._client.post(
             f"{self._endpoint}/pdp/data-sets",
             json={"recordKeeper": record_keeper, "extraData": extra_data},
+            headers=headers,
         )
+
+        # Handle idempotency and conflict responses
+        if resp.status_code == 409:
+            # Resource already exists
+            try:
+                error_data = resp.json()
+                existing_id = error_data.get("existingDataSetId") or error_data.get("dataSetId")
+                raise AlreadyExistsError(
+                    f"Data set already exists: {resp.text}",
+                    existing_resource_id=str(existing_id) if existing_id else None
+                )
+            except (ValueError, KeyError):
+                raise AlreadyExistsError(f"Data set already exists: {resp.text}")
+
+        if resp.status_code == 422:
+            # Idempotency key conflict
+            raise IdempotencyError(f"Idempotency key conflict: {resp.text}")
+
         if resp.status_code not in (201, 202):
             raise RuntimeError(f"unexpected status {resp.status_code}: {resp.text}")
+
         location = resp.headers.get("Location")
         if not location:
             raise RuntimeError("missing Location header")
@@ -64,7 +121,30 @@ class PDPServer:
             time.sleep(poll_interval)
         raise TimeoutError("Timed out waiting for data set creation")
 
-    def add_pieces(self, data_set_id: int, piece_cids: Iterable[str], extra_data: str) -> AddPiecesResponse:
+    def add_pieces(
+        self,
+        data_set_id: int,
+        piece_cids: Iterable[str],
+        extra_data: str,
+        idempotency_key: Optional[str] = None
+    ) -> AddPiecesResponse:
+        """
+        Add pieces to a data set.
+
+        Args:
+            data_set_id: ID of the target dataset
+            piece_cids: Iterable of piece CIDs to add
+            extra_data: Signed extra data for piece addition
+            idempotency_key: Optional idempotency key for safe retries
+
+        Returns:
+            AddPiecesResponse with transaction hash and status URL
+
+        Raises:
+            AlreadyExistsError: If some/all pieces already exist (409 status)
+            IdempotencyError: If idempotency key conflicts (422 status)
+            RuntimeError: For other server errors
+        """
         pieces = [
             {
                 "pieceCid": cid,
@@ -72,12 +152,40 @@ class PDPServer:
             }
             for cid in piece_cids
         ]
+
+        headers = {}
+        if idempotency_key:
+            headers["Idempotency-Key"] = idempotency_key
+
         resp = self._client.post(
             f"{self._endpoint}/pdp/data-sets/{data_set_id}/pieces",
             json={"pieces": pieces, "extraData": extra_data},
+            headers=headers,
         )
+
+        # Handle idempotency and conflict responses
+        if resp.status_code == 409:
+            # Some/all pieces already exist
+            try:
+                error_data = resp.json()
+                existing_pieces = error_data.get("existingPieces", [])
+                msg = f"Some pieces already exist in dataset {data_set_id}"
+                if existing_pieces:
+                    msg += f": {existing_pieces}"
+                raise AlreadyExistsError(msg, existing_resource_id=str(data_set_id))
+            except (ValueError, KeyError):
+                raise AlreadyExistsError(
+                    f"Some pieces already exist in dataset {data_set_id}: {resp.text}",
+                    existing_resource_id=str(data_set_id)
+                )
+
+        if resp.status_code == 422:
+            # Idempotency key conflict
+            raise IdempotencyError(f"Idempotency key conflict: {resp.text}")
+
         if resp.status_code not in (201, 202):
             raise RuntimeError(f"unexpected status {resp.status_code}: {resp.text}")
+
         location = resp.headers.get("Location")
         if not location:
             raise RuntimeError("missing Location header")
@@ -184,13 +292,58 @@ class AsyncPDPServer:
     def endpoint(self) -> str:
         return self._endpoint
 
-    async def create_data_set(self, record_keeper: str, extra_data: str) -> CreateDataSetResponse:
+    async def create_data_set(
+        self,
+        record_keeper: str,
+        extra_data: str,
+        idempotency_key: Optional[str] = None
+    ) -> CreateDataSetResponse:
+        """
+        Create a new data set asynchronously.
+
+        Args:
+            record_keeper: Address of the record keeper contract
+            extra_data: Signed extra data for dataset creation
+            idempotency_key: Optional idempotency key for safe retries
+
+        Returns:
+            CreateDataSetResponse with transaction hash and status URL
+
+        Raises:
+            AlreadyExistsError: If dataset already exists (409 status)
+            IdempotencyError: If idempotency key conflicts (422 status)
+            RuntimeError: For other server errors
+        """
+        headers = {}
+        if idempotency_key:
+            headers["Idempotency-Key"] = idempotency_key
+
         resp = await self._client.post(
             f"{self._endpoint}/pdp/data-sets",
             json={"recordKeeper": record_keeper, "extraData": extra_data},
+            headers=headers,
         )
+
+        # Handle idempotency and conflict responses
+        if resp.status_code == 409:
+            # Resource already exists
+            try:
+                error_data = resp.json()
+                existing_id = error_data.get("existingDataSetId") or error_data.get("dataSetId")
+                raise AlreadyExistsError(
+                    f"Data set already exists: {resp.text}",
+                    existing_resource_id=str(existing_id) if existing_id else None
+                )
+            except (ValueError, KeyError):
+                raise AlreadyExistsError(f"Data set already exists: {resp.text}")
+
+        if resp.status_code == 422:
+            # Idempotency key conflict
+            raise IdempotencyError(f"Idempotency key conflict: {resp.text}")
+
         if resp.status_code not in (201, 202):
             raise RuntimeError(f"unexpected status {resp.status_code}: {resp.text}")
+
         location = resp.headers.get("Location")
         if not location:
             raise RuntimeError("missing Location header")
@@ -221,7 +374,30 @@ class AsyncPDPServer:
             await asyncio.sleep(poll_interval)
         raise TimeoutError("Timed out waiting for data set creation")
 
-    async def add_pieces(self, data_set_id: int, piece_cids: Iterable[str], extra_data: str) -> AddPiecesResponse:
+    async def add_pieces(
+        self,
+        data_set_id: int,
+        piece_cids: Iterable[str],
+        extra_data: str,
+        idempotency_key: Optional[str] = None
+    ) -> AddPiecesResponse:
+        """
+        Add pieces to a data set asynchronously.
+
+        Args:
+            data_set_id: ID of the target dataset
+            piece_cids: Iterable of piece CIDs to add
+            extra_data: Signed extra data for piece addition
+            idempotency_key: Optional idempotency key for safe retries
+
+        Returns:
+            AddPiecesResponse with transaction hash and status URL
+
+        Raises:
+            AlreadyExistsError: If some/all pieces already exist (409 status)
+            IdempotencyError: If idempotency key conflicts (422 status)
+            RuntimeError: For other server errors
+        """
         pieces = [
             {
                 "pieceCid": cid,
@@ -229,12 +405,40 @@ class AsyncPDPServer:
             }
             for cid in piece_cids
         ]
+
+        headers = {}
+        if idempotency_key:
+            headers["Idempotency-Key"] = idempotency_key
+
         resp = await self._client.post(
             f"{self._endpoint}/pdp/data-sets/{data_set_id}/pieces",
             json={"pieces": pieces, "extraData": extra_data},
+            headers=headers,
         )
+
+        # Handle idempotency and conflict responses
+        if resp.status_code == 409:
+            # Some/all pieces already exist
+            try:
+                error_data = resp.json()
+                existing_pieces = error_data.get("existingPieces", [])
+                msg = f"Some pieces already exist in dataset {data_set_id}"
+                if existing_pieces:
+                    msg += f": {existing_pieces}"
+                raise AlreadyExistsError(msg, existing_resource_id=str(data_set_id))
+            except (ValueError, KeyError):
+                raise AlreadyExistsError(
+                    f"Some pieces already exist in dataset {data_set_id}: {resp.text}",
+                    existing_resource_id=str(data_set_id)
+                )
+
+        if resp.status_code == 422:
+            # Idempotency key conflict
+            raise IdempotencyError(f"Idempotency key conflict: {resp.text}")
+
         if resp.status_code not in (201, 202):
             raise RuntimeError(f"unexpected status {resp.status_code}: {resp.text}")
+
         location = resp.headers.get("Location")
         if not location:
             raise RuntimeError("missing Location header")

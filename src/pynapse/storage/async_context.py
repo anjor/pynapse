@@ -5,6 +5,7 @@ Represents a specific Service Provider + DataSet pair with full async support.
 """
 from __future__ import annotations
 
+import hashlib
 import random
 from dataclasses import dataclass, field
 from typing import Callable, Dict, List, Optional, TYPE_CHECKING, Awaitable
@@ -14,6 +15,7 @@ import httpx
 from pynapse.core.piece import calculate_piece_cid
 from pynapse.core.typed_data import sign_add_pieces_extra_data, sign_create_dataset_extra_data
 from pynapse.pdp import AsyncPDPServer
+from pynapse.pdp.server import AlreadyExistsError, IdempotencyError
 from pynapse.utils.metadata import combine_metadata, metadata_matches, metadata_object_to_entries
 
 if TYPE_CHECKING:
@@ -64,10 +66,10 @@ class AsyncStorageContextOptions:
 class AsyncStorageContext:
     """
     Async storage context for a specific provider and dataset.
-    
+
     Use the factory methods `create()` or `create_contexts()` to construct
     instances with proper provider selection and dataset resolution.
-    
+
     Example:
         ctx = await AsyncStorageContext.create(
             chain=chain,
@@ -77,7 +79,7 @@ class AsyncStorageContext:
         )
         result = await ctx.upload(data)
     """
-    
+
     def __init__(
         self,
         pdp_endpoint: str,
@@ -98,6 +100,21 @@ class AsyncStorageContext:
         self._provider = provider
         self._with_cdn = with_cdn
         self._metadata = metadata or {}
+
+    @staticmethod
+    def _generate_idempotency_key(operation: str, *args: str) -> str:
+        """
+        Generate a deterministic idempotency key based on operation and parameters.
+
+        Args:
+            operation: The operation type (e.g., "create_dataset", "add_pieces")
+            *args: Additional parameters to include in the key
+
+        Returns:
+            Hex-encoded SHA-256 hash as idempotency key
+        """
+        content = f"{operation}:" + ":".join(args)
+        return hashlib.sha256(content.encode('utf-8')).hexdigest()[:32]
 
     @property
     def data_set_id(self) -> int:
@@ -186,15 +203,15 @@ class AsyncStorageContext:
         if data_set_id == -1:
             # Need to create a new dataset
             pdp = AsyncPDPServer(resolution.pdp_endpoint)
-            
+
             # Use a random client_data_set_id like the TypeScript SDK does
             # This ensures uniqueness and avoids collisions with existing datasets
             from pynapse.core.rand import rand_u256
             next_client_id = rand_u256()
-            
+
             # Convert metadata dict to list of {key, value} entries
             metadata_entries = metadata_object_to_entries(requested_metadata)
-            
+
             extra_data = sign_create_dataset_extra_data(
                 private_key=private_key,
                 chain=chain,
@@ -202,16 +219,57 @@ class AsyncStorageContext:
                 payee=resolution.provider.payee,
                 metadata=metadata_entries,
             )
-            resp = await pdp.create_data_set(
-                record_keeper=chain.contracts.warm_storage,
-                extra_data=extra_data,
+
+            # Generate idempotency key for dataset creation
+            idempotency_key = cls._generate_idempotency_key(
+                "create_dataset",
+                acct.address,
+                str(resolution.provider.provider_id),
+                str(next_client_id),
+                str(sorted(requested_metadata.items()))
             )
-            # Wait for creation
-            status = await pdp.wait_for_data_set_creation(resp.tx_hash)
-            data_set_id = status.data_set_id
-            # Get client_data_set_id from the new dataset
-            ds_info = await warm_storage.get_data_set(data_set_id)
-            client_data_set_id = ds_info.client_data_set_id
+
+            try:
+                resp = await pdp.create_data_set(
+                    record_keeper=chain.contracts.warm_storage,
+                    extra_data=extra_data,
+                    idempotency_key=idempotency_key,
+                )
+                # Wait for creation
+                status = await pdp.wait_for_data_set_creation(resp.tx_hash)
+                data_set_id = status.data_set_id
+                # Get client_data_set_id from the new dataset
+                ds_info = await warm_storage.get_data_set(data_set_id)
+                client_data_set_id = ds_info.client_data_set_id
+            except AlreadyExistsError as e:
+                # Dataset already exists - this is acceptable for idempotency
+                # Try to find the existing dataset
+                if e.existing_resource_id:
+                    try:
+                        data_set_id = int(e.existing_resource_id)
+                        ds_info = await warm_storage.get_data_set(data_set_id)
+                        client_data_set_id = ds_info.client_data_set_id
+                    except (ValueError, Exception):
+                        # Fall back to original error if we can't resolve the existing dataset
+                        raise e
+                else:
+                    # Try to find a matching dataset by searching client datasets
+                    try:
+                        datasets = await warm_storage.get_client_data_sets(acct.address)
+                        for ds in datasets:
+                            if (ds.provider_id == resolution.provider.provider_id
+                                and ds.pdp_end_epoch == 0):
+                                # Check metadata match
+                                ds_metadata = await warm_storage.get_all_data_set_metadata(ds.data_set_id)
+                                if metadata_matches(ds_metadata, requested_metadata):
+                                    data_set_id = ds.data_set_id
+                                    client_data_set_id = ds.client_data_set_id
+                                    break
+                        else:
+                            # No matching dataset found
+                            raise e
+                    except Exception:
+                        raise e
         
         # Fire dataset resolved callback
         if options.on_data_set_resolved:
@@ -615,7 +673,7 @@ class AsyncStorageContext:
             except Exception:
                 pass
         
-        # Add piece to dataset
+        # Add piece to dataset with idempotency
         pieces = [(info.piece_cid, [{"key": k, "value": v} for k, v in (metadata or {}).items()])]
         extra_data = sign_add_pieces_extra_data(
             private_key=self._private_key,
@@ -623,8 +681,30 @@ class AsyncStorageContext:
             client_data_set_id=self._client_data_set_id,
             pieces=pieces,
         )
-        
-        add_resp = await self._pdp.add_pieces(self._data_set_id, [info.piece_cid], extra_data)
+
+        # Generate idempotency key for piece addition
+        piece_metadata_str = str(sorted((metadata or {}).items()))
+        idempotency_key = self._generate_idempotency_key(
+            "add_pieces",
+            str(self._data_set_id),
+            info.piece_cid,
+            piece_metadata_str
+        )
+
+        try:
+            add_resp = await self._pdp.add_pieces(
+                self._data_set_id,
+                [info.piece_cid],
+                extra_data,
+                idempotency_key=idempotency_key
+            )
+        except AlreadyExistsError:
+            # Piece already exists in the dataset - this is acceptable for idempotency
+            # Create a mock response since the piece is already there
+            add_resp = type('MockResponse', (), {
+                'tx_hash': None,
+                'message': f'Piece {info.piece_cid} already exists in dataset {self._data_set_id}'
+            })()
         
         if on_pieces_added:
             try:
@@ -667,7 +747,7 @@ class AsyncStorageContext:
         for info in piece_infos:
             await self._pdp.wait_for_piece(info.piece_cid, timeout_seconds=60, poll_interval=2)
         
-        # Batch add pieces
+        # Batch add pieces with idempotency
         pieces = [
             (info.piece_cid, [{"key": k, "value": v} for k, v in (metadata or {}).items()])
             for info in piece_infos
@@ -678,9 +758,32 @@ class AsyncStorageContext:
             client_data_set_id=self._client_data_set_id,
             pieces=pieces,
         )
-        
+
         piece_cids = [info.piece_cid for info in piece_infos]
-        add_resp = await self._pdp.add_pieces(self._data_set_id, piece_cids, extra_data)
+        piece_metadata_str = str(sorted((metadata or {}).items()))
+
+        # Generate idempotency key for batch piece addition
+        idempotency_key = self._generate_idempotency_key(
+            "add_pieces_batch",
+            str(self._data_set_id),
+            ":".join(sorted(piece_cids)),  # Sort to ensure deterministic key
+            piece_metadata_str
+        )
+
+        try:
+            add_resp = await self._pdp.add_pieces(
+                self._data_set_id,
+                piece_cids,
+                extra_data,
+                idempotency_key=idempotency_key
+            )
+        except AlreadyExistsError:
+            # Some/all pieces already exist in the dataset - this is acceptable for idempotency
+            # Create a mock response since pieces are already there
+            add_resp = type('MockResponse', (), {
+                'tx_hash': None,
+                'message': f'Some pieces already exist in dataset {self._data_set_id}'
+            })()
         
         for info in piece_infos:
             results.append(AsyncUploadResult(
