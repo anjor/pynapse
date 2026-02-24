@@ -82,6 +82,7 @@ class StorageContext:
         provider: Optional["ProviderInfo"] = None,
         with_cdn: bool = False,
         metadata: Optional[Dict[str, str]] = None,
+        warm_storage: Optional["SyncWarmStorageService"] = None,
     ) -> None:
         self._pdp = PDPServer(pdp_endpoint)
         self._pdp_endpoint = pdp_endpoint
@@ -92,6 +93,7 @@ class StorageContext:
         self._provider = provider
         self._with_cdn = with_cdn
         self._metadata = metadata or {}
+        self._warm_storage = warm_storage
 
     @property
     def data_set_id(self) -> int:
@@ -180,6 +182,7 @@ class StorageContext:
         if data_set_id == -1:
             # Need to create a new dataset
             pdp = PDPServer(resolution.pdp_endpoint)
+            cls._ensure_provider_approved(warm_storage, resolution.provider.provider_id)
             
             # Get next client_data_set_id by counting existing datasets
             try:
@@ -229,6 +232,7 @@ class StorageContext:
             provider=resolution.provider,
             with_cdn=options.with_cdn,
             metadata=requested_metadata,
+            warm_storage=warm_storage,
         )
 
     @classmethod
@@ -389,6 +393,9 @@ class StorageContext:
         provider = sp_registry.get_provider(ds_info.provider_id)
         if provider is None:
             raise ValueError(f"Provider ID {ds_info.provider_id} for data set {data_set_id} not found")
+        if not provider.is_active:
+            raise ValueError(f"Provider ID {provider.provider_id} is not active")
+        cls._ensure_provider_approved(warm_storage, provider.provider_id)
 
         # Get PDP endpoint from provider product info
         pdp_endpoint = cls._get_pdp_endpoint(sp_registry, provider.provider_id)
@@ -424,6 +431,9 @@ class StorageContext:
         provider = sp_registry.get_provider(provider_id)
         if provider is None:
             raise ValueError(f"Provider ID {provider_id} not found in registry")
+        if not provider.is_active:
+            raise ValueError(f"Provider ID {provider_id} is not active")
+        cls._ensure_provider_approved(warm_storage, provider_id)
         
         pdp_endpoint = cls._get_pdp_endpoint(sp_registry, provider_id)
         
@@ -575,6 +585,62 @@ class StorageContext:
         except Exception:
             return False
 
+    @classmethod
+    def _ensure_provider_approved(
+        cls,
+        warm_storage: "SyncWarmStorageService",
+        provider_id: int,
+    ) -> None:
+        try:
+            if not warm_storage.is_provider_approved(provider_id):
+                try:
+                    approved = warm_storage.get_approved_provider_ids()
+                except Exception:
+                    approved = None
+                if approved:
+                    raise ValueError(
+                        f"Provider {provider_id} is not approved for Warm Storage. "
+                        f"Approved providers: {approved}"
+                    )
+                raise ValueError(
+                    f"Provider {provider_id} is not approved for Warm Storage. "
+                    "Choose an approved provider or request approval."
+                )
+        except Exception as exc:
+            if isinstance(exc, ValueError):
+                raise
+            raise ValueError(f"Failed to verify provider approval for {provider_id}: {exc}") from exc
+
+    def _preflight_add_pieces(self, total_size_bytes: int, piece_count: int) -> None:
+        if self._warm_storage is None:
+            return
+        try:
+            self._warm_storage.validate_data_set(self._data_set_id)
+        except Exception as exc:
+            raise ValueError(
+                f"Preflight failed for data set {self._data_set_id}: {exc}. "
+                "Ensure the data set is live and managed by the Warm Storage contract."
+            ) from exc
+        try:
+            ds_info = self._warm_storage.get_data_set(self._data_set_id)
+        except Exception as exc:
+            raise ValueError(
+                f"Failed to load data set {self._data_set_id} for preflight: {exc}"
+            ) from exc
+        try:
+            from eth_account import Account
+            acct = Account.from_key(self._private_key)
+            if ds_info.payer.lower() != acct.address.lower():
+                raise ValueError(
+                    f"Data set {self._data_set_id} is owned by {ds_info.payer}, "
+                    f"not {acct.address}. Use the correct private key or dataset ID."
+                )
+        except Exception as exc:
+            if isinstance(exc, ValueError):
+                raise
+            raise ValueError(f"Failed to verify data set ownership: {exc}") from exc
+        self._ensure_provider_approved(self._warm_storage, ds_info.provider_id)
+
     def upload(
         self,
         data: bytes,
@@ -597,6 +663,7 @@ class StorageContext:
             UploadResult with piece CID and transaction info
         """
         self._validate_size(len(data))
+        self._preflight_add_pieces(len(data), 1)
         
         info = calculate_piece_cid(data)
         
@@ -653,10 +720,16 @@ class StorageContext:
         """
         results = []
         piece_infos = []
+        total_size = 0
         
-        # Calculate CIDs and upload all pieces
+        # Validate sizes and compute total size up front
         for data in data_items:
             self._validate_size(len(data))
+            total_size += len(data)
+        self._preflight_add_pieces(total_size, len(data_items))
+
+        # Calculate CIDs and upload all pieces
+        for data in data_items:
             info = calculate_piece_cid(data)
             self._pdp.upload_piece(data, info.piece_cid, info.padded_piece_size)
             piece_infos.append(info)
