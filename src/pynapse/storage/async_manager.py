@@ -141,6 +141,7 @@ class AsyncStorageManager:
             private_key=self._private_key,
             data_set_id=data_set_id,
             client_data_set_id=client_data_set_id,
+            warm_storage=self._warm_storage,
         )
         if provider_id is not None:
             self._context_cache[provider_id] = context
@@ -486,10 +487,34 @@ class AsyncStorageManager:
                         f"Insufficient allowances: need rate={rate_needed}, lockup={lockup_needed}"
                     ),
                 }
+                if not approval.is_approved:
+                    result["allowance_check"]["sufficient"] = False
+                    result["allowance_check"]["message"] = (
+                        "Warm Storage operator approval is missing. "
+                        "Call payments.set_operator_approval(...) to approve."
+                    )
             except Exception as e:
                 result["allowance_check"]["message"] = f"Failed to check allowances: {e}"
         
         return result
+
+    async def _preflight_upload_requirements(
+        self,
+        size_bytes: int,
+        with_cdn: bool,
+        payments_service=None,
+    ) -> None:
+        if payments_service is None:
+            return
+        info = await self.preflight_upload(
+            size_bytes=size_bytes,
+            with_cdn=with_cdn,
+            payments_service=payments_service,
+        )
+        allowance = info.get("allowance_check", {})
+        if not allowance.get("is_approved", True) or not allowance.get("sufficient", True):
+            message = allowance.get("message") or "Insufficient allowances for upload."
+            raise ValueError(message)
 
     async def upload(
         self, 
@@ -502,6 +527,7 @@ class AsyncStorageManager:
         context: Optional[AsyncStorageContext] = None,
         with_cdn: bool = False,
         auto_create_context: bool = True,
+        payments_service=None,
     ) -> AsyncUploadResult:
         """
         Upload data to storage asynchronously.
@@ -520,10 +546,20 @@ class AsyncStorageManager:
             context: Explicit context to use (overrides other params)
             with_cdn: Enable CDN services (for auto-create)
             auto_create_context: Auto-create context if services available (default: True)
+            payments_service: Optional AsyncPaymentsService for preflight allowance checks
             
         Returns:
             Upload result with piece CID and tx hash
         """
+        effective_with_cdn = with_cdn
+        if context is not None:
+            effective_with_cdn = context.with_cdn
+        await self._preflight_upload_requirements(
+            size_bytes=len(data),
+            with_cdn=effective_with_cdn,
+            payments_service=payments_service,
+        )
+
         if context is not None:
             return await context.upload(data, metadata=metadata)
         

@@ -370,6 +370,7 @@ class TestAsyncResolveByDataSetId:
         ws.validate_data_set = AsyncMock()
         ws.get_data_set = AsyncMock(return_value=ds_info)
         ws.get_all_data_set_metadata = AsyncMock(return_value=metadata if metadata is not None else {})
+        ws.is_provider_approved = AsyncMock(return_value=True)
         return ws
 
     @pytest.mark.asyncio
@@ -445,6 +446,96 @@ class TestAsyncResolveByDataSetId:
                 requested_metadata={},
                 options=AsyncStorageContextOptions(data_set_id=42, provider_id=99),
             )
+
+    @pytest.mark.asyncio
+    async def test_resolve_by_provider_id_not_approved_raises(self):
+        """Specifying a provider that is not approved should raise early."""
+        from pynapse.storage.async_context import AsyncStorageContext
+
+        ws = AsyncMock()
+        ws.is_provider_approved = AsyncMock(return_value=False)
+        sp = self._make_mock_sp_registry(provider_id=1)
+
+        with pytest.raises(ValueError, match="not approved for Warm Storage"):
+            await AsyncStorageContext._resolve_by_provider_id(
+                provider_id=1,
+                client_address="0xClient",
+                warm_storage=ws,
+                sp_registry=sp,
+                requested_metadata={},
+                force_create=False,
+            )
+
+
+class TestAsyncStoragePreflightChecks:
+    """Tests for async preflight checks before upload/add operations."""
+
+    @pytest.fixture
+    def mock_chain(self):
+        chain = MagicMock()
+        chain.contracts.warm_storage = "0xWarmStorage"
+        chain.contracts.warm_storage_state_view = "0xStateView"
+        chain.contracts.sp_registry = "0xSPRegistry"
+        return chain
+
+    @pytest.fixture
+    def mock_sp_registry(self):
+        sp = AsyncMock()
+        sp.get_all_active_providers = AsyncMock(return_value=[
+            MockProviderInfo(
+                provider_id=1,
+                service_provider="0xProvider1",
+                payee="0xPayee1",
+                name="Provider 1",
+                description="Test provider",
+                is_active=True,
+            ),
+        ])
+        sp.get_provider = AsyncMock(side_effect=lambda pid: MockProviderInfo(
+            provider_id=pid,
+            service_provider=f"0xProvider{pid}",
+            payee=f"0xPayee{pid}",
+            name=f"Provider {pid}",
+            description="Test provider",
+            is_active=True,
+        ))
+        return sp
+
+    @pytest.mark.asyncio
+    async def test_upload_preflight_blocks_insufficient_allowance(self, mock_chain, mock_sp_registry):
+        """Upload should fail early when allowances are insufficient."""
+        from pynapse.storage.async_manager import AsyncStorageManager
+
+        mock_warm_storage = AsyncMock()
+        mock_warm_storage.get_current_pricing_rates = AsyncMock(return_value=[
+            2000000,  # price no CDN
+            2000000,  # price with CDN
+            1,        # epochs per month
+            "0xToken"
+        ])
+
+        payments_service = AsyncMock()
+        payments_service.service_approval = AsyncMock(return_value=MagicMock(
+            is_approved=True,
+            rate_allowance=0,
+            lockup_allowance=0,
+        ))
+
+        manager = AsyncStorageManager(
+            chain=mock_chain,
+            private_key="0x" + "1" * 64,
+            sp_registry=mock_sp_registry,
+            warm_storage=mock_warm_storage,
+        )
+
+        context = AsyncMock()
+        with pytest.raises(ValueError, match="Insufficient allowances"):
+            await manager.upload(
+                data=b"x" * (1024 * 1024),
+                context=context,
+                payments_service=payments_service,
+            )
+        context.upload.assert_not_called()
 
 
 class TestAsyncUploadResult:
