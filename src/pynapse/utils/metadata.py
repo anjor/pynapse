@@ -25,8 +25,15 @@ def combine_metadata(
 
     Each managed key is added only when its option is active AND the key is
     not already present in ``metadata`` — explicit user metadata wins.
+    Non-string metadata values raise ``TypeError`` with the offending key
+    (mirrors FilOzone/synapse-sdk#615).
     """
     result = dict(metadata or {})
+    for key, value in result.items():
+        if not isinstance(value, str):
+            raise TypeError(
+                f"Metadata value for key {key!r} must be a string, got {type(value).__name__}"
+            )
 
     if with_cdn and METADATA_KEYS["WITH_CDN"] not in result:
         result[METADATA_KEYS["WITH_CDN"]] = ""

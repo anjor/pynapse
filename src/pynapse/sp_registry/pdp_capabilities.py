@@ -53,10 +53,29 @@ def decode_pdp_capabilities(capabilities: Dict[str, str]) -> PDPOffering:
             ipni_peer_id = multibase.encode("base58btc", Web3.to_bytes(hexstr=peer_hex)).decode()
         except Exception:
             ipni_peer_id = None
+
+    known_keys = {
+        CAP_SERVICE_URL,
+        CAP_MIN_PIECE_SIZE,
+        CAP_MAX_PIECE_SIZE,
+        CAP_STORAGE_PRICE,
+        CAP_MIN_PROVING_PERIOD,
+        CAP_LOCATION,
+        CAP_PAYMENT_TOKEN,
+        CAP_IPNI_PIECE,
+        CAP_IPNI_IPFS,
+        CAP_IPNI_PEER_ID,
+        CAP_IPNI_PEER_ID_LEGACY,
+    }
+    extra_capabilities = {
+        key: value for key, value in capabilities.items() if key not in known_keys
+    }
+
     return PDPOffering(
         ipni_piece=ipni_piece,
         ipni_ipfs=ipni_ipfs,
         ipni_peer_id=ipni_peer_id,
+        extra_capabilities=extra_capabilities,
         **required,
     )
 

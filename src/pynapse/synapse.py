@@ -25,12 +25,14 @@ class Synapse:
         account_address: str,
         private_key: Optional[str] = None,
         source: Optional[str] = None,
+        with_cdn: bool = False,
     ) -> None:
         self._web3 = web3
         self._chain = chain
         self._account = account_address
         self._private_key = private_key
         self._source = source
+        self._with_cdn = with_cdn
         self._payments = SyncPaymentsService(web3, chain, account_address, private_key)
         self._providers = SyncSPRegistryService(web3, chain, private_key)
         self._warm_storage = SyncWarmStorageService(web3, chain, private_key)
@@ -44,6 +46,7 @@ class Synapse:
             warm_storage=self._warm_storage,
             retriever=self._retriever,
             source=source,
+            with_cdn=with_cdn,
         )
         self._session_registry = SyncSessionKeyRegistry(web3, chain, private_key)
         self._filbeam = FilBeamService(chain)
@@ -55,6 +58,7 @@ class Synapse:
         chain: Chain | str | int = CALIBRATION,
         private_key: Optional[str] = None,
         source: Optional[str] = None,
+        with_cdn: bool = False,
     ) -> "Synapse":
         """Create a sync Synapse client.
 
@@ -67,7 +71,14 @@ class Synapse:
         if private_key is None:
             raise ValueError("private_key required to create Synapse")
         account = Account.from_key(private_key)
-        return cls(client.web3, chain_obj, account.address, private_key, source=source)
+        return cls(
+            client.web3,
+            chain_obj,
+            account.address,
+            private_key,
+            source=source,
+            with_cdn=with_cdn,
+        )
 
     @property
     def web3(self) -> Web3:
@@ -85,6 +96,11 @@ class Synapse:
     def source(self) -> Optional[str]:
         """Application identifier for dataset namespace isolation."""
         return self._source
+
+    @property
+    def with_cdn(self) -> bool:
+        """Default ``withCDN`` flag for storage operations."""
+        return self._with_cdn
 
     @property
     def payments(self) -> SyncPaymentsService:
@@ -138,12 +154,14 @@ class AsyncSynapse:
         account_address: str,
         private_key: Optional[str] = None,
         source: Optional[str] = None,
+        with_cdn: bool = False,
     ) -> None:
         self._web3 = web3
         self._chain = chain
         self._account = account_address
         self._private_key = private_key
         self._source = source
+        self._with_cdn = with_cdn
         self._payments = AsyncPaymentsService(web3, chain, account_address, private_key)
         self._providers = AsyncSPRegistryService(web3, chain, private_key)
         self._warm_storage = AsyncWarmStorageService(web3, chain, private_key)
@@ -157,6 +175,7 @@ class AsyncSynapse:
             warm_storage=self._warm_storage,
             retriever=self._retriever,
             source=source,
+            with_cdn=with_cdn,
         )
         self._session_registry = AsyncSessionKeyRegistry(web3, chain, private_key)
         self._filbeam = FilBeamService(chain)
@@ -168,6 +187,7 @@ class AsyncSynapse:
         chain: Chain | str | int = CALIBRATION,
         private_key: Optional[str] = None,
         source: Optional[str] = None,
+        with_cdn: bool = False,
     ) -> "AsyncSynapse":
         """Create an async Synapse client.
 
@@ -180,7 +200,14 @@ class AsyncSynapse:
         if private_key is None:
             raise ValueError("private_key required to create AsyncSynapse")
         account = Account.from_key(private_key)
-        return cls(client.web3, chain_obj, account.address, private_key, source=source)
+        return cls(
+            client.web3,
+            chain_obj,
+            account.address,
+            private_key,
+            source=source,
+            with_cdn=with_cdn,
+        )
 
     @property
     def web3(self) -> AsyncWeb3:
@@ -198,6 +225,11 @@ class AsyncSynapse:
     def source(self) -> Optional[str]:
         """Application identifier for dataset namespace isolation."""
         return self._source
+
+    @property
+    def with_cdn(self) -> bool:
+        """Default ``withCDN`` flag for storage operations."""
+        return self._with_cdn
 
     @property
     def payments(self) -> AsyncPaymentsService:
