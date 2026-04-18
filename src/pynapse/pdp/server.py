@@ -13,6 +13,11 @@ from .types import (
     CreateDataSetResponse,
     DataSetCreationStatus,
     PieceAdditionStatus,
+    PullPieceInput,
+    PullPieceStatus,
+    PullPiecesResponse,
+    PULL_STATUS_COMPLETE,
+    PULL_STATUS_FAILED,
     UploadPieceResponse,
 )
 
@@ -173,6 +178,62 @@ class PDPServer:
             raise RuntimeError(f"unexpected status {resp.status_code}: {resp.text}")
         return resp.content
 
+    def pull_pieces(
+        self,
+        record_keeper: str,
+        extra_data: str,
+        pieces: Iterable[PullPieceInput],
+        data_set_id: Optional[int] = None,
+    ) -> PullPiecesResponse:
+        """Request this SP to pull pieces from other SPs (``POST /pdp/piece/pull``).
+
+        Idempotent: retrying with the same ``extra_data`` returns the current
+        status of the existing pull rather than creating a duplicate request.
+        """
+        body: dict = {
+            "extraData": extra_data,
+            "recordKeeper": record_keeper,
+            "pieces": [
+                {"pieceCid": p.piece_cid, "sourceUrl": p.source_url} for p in pieces
+            ],
+        }
+        if data_set_id is not None and data_set_id > 0:
+            body["dataSetId"] = int(data_set_id)
+
+        resp = self._client.post(f"{self._endpoint}/pdp/piece/pull", json=body)
+        if resp.status_code not in (200, 201, 202):
+            raise RuntimeError(f"unexpected status {resp.status_code}: {resp.text}")
+        payload = resp.json()
+        return PullPiecesResponse(
+            status=payload["status"],
+            pieces=[
+                PullPieceStatus(piece_cid=p["pieceCid"], status=p["status"])
+                for p in payload.get("pieces", [])
+            ],
+        )
+
+    def wait_for_pull_pieces(
+        self,
+        record_keeper: str,
+        extra_data: str,
+        pieces: Iterable[PullPieceInput],
+        data_set_id: Optional[int] = None,
+        timeout_seconds: int = 300,
+        poll_interval: int = 4,
+    ) -> PullPiecesResponse:
+        """Poll ``POST /pdp/piece/pull`` until all pieces complete or any fail."""
+        pieces_list = list(pieces)
+        deadline = time.time() + timeout_seconds
+        status: PullPiecesResponse | None = None
+        while time.time() < deadline:
+            status = self.pull_pieces(record_keeper, extra_data, pieces_list, data_set_id)
+            if status.status in (PULL_STATUS_COMPLETE, PULL_STATUS_FAILED):
+                return status
+            time.sleep(poll_interval)
+        if status is None:
+            raise TimeoutError("Timed out before pull status was reported")
+        raise TimeoutError(f"Timed out waiting for pull (last status: {status.status})")
+
 
 class AsyncPDPServer:
     def __init__(self, endpoint: str, timeout_seconds: int = 300) -> None:
@@ -329,3 +390,57 @@ class AsyncPDPServer:
         if resp.status_code != 200:
             raise RuntimeError(f"unexpected status {resp.status_code}: {resp.text}")
         return resp.content
+
+    async def pull_pieces(
+        self,
+        record_keeper: str,
+        extra_data: str,
+        pieces: Iterable[PullPieceInput],
+        data_set_id: Optional[int] = None,
+    ) -> PullPiecesResponse:
+        """Request this SP to pull pieces from other SPs (``POST /pdp/piece/pull``)."""
+        body: dict = {
+            "extraData": extra_data,
+            "recordKeeper": record_keeper,
+            "pieces": [
+                {"pieceCid": p.piece_cid, "sourceUrl": p.source_url} for p in pieces
+            ],
+        }
+        if data_set_id is not None and data_set_id > 0:
+            body["dataSetId"] = int(data_set_id)
+
+        resp = await self._client.post(f"{self._endpoint}/pdp/piece/pull", json=body)
+        if resp.status_code not in (200, 201, 202):
+            raise RuntimeError(f"unexpected status {resp.status_code}: {resp.text}")
+        payload = resp.json()
+        return PullPiecesResponse(
+            status=payload["status"],
+            pieces=[
+                PullPieceStatus(piece_cid=p["pieceCid"], status=p["status"])
+                for p in payload.get("pieces", [])
+            ],
+        )
+
+    async def wait_for_pull_pieces(
+        self,
+        record_keeper: str,
+        extra_data: str,
+        pieces: Iterable[PullPieceInput],
+        data_set_id: Optional[int] = None,
+        timeout_seconds: int = 300,
+        poll_interval: int = 4,
+    ) -> PullPiecesResponse:
+        """Poll ``POST /pdp/piece/pull`` until all pieces complete or any fail."""
+        pieces_list = list(pieces)
+        deadline = time.time() + timeout_seconds
+        status: PullPiecesResponse | None = None
+        while time.time() < deadline:
+            status = await self.pull_pieces(
+                record_keeper, extra_data, pieces_list, data_set_id
+            )
+            if status.status in (PULL_STATUS_COMPLETE, PULL_STATUS_FAILED):
+                return status
+            await asyncio.sleep(poll_interval)
+        if status is None:
+            raise TimeoutError("Timed out before pull status was reported")
+        raise TimeoutError(f"Timed out waiting for pull (last status: {status.status})")
