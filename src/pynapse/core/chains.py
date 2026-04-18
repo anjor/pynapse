@@ -16,6 +16,7 @@ class ChainContracts:
     sp_registry: str
     session_key_registry: str
     pdp_verifier: str
+    provider_id_set: str
 
 
 @dataclass(frozen=True)
@@ -54,6 +55,7 @@ CONTRACTS_BY_NETWORK: Dict[str, ChainContracts] = {
         sp_registry=ADDRESSES["serviceProviderRegistryAddress"]["314"],
         session_key_registry=ADDRESSES["sessionKeyRegistryAddress"]["314"],
         pdp_verifier=ADDRESSES["pdpVerifierAddress"]["314"],
+        provider_id_set=ADDRESSES["providerIdSetAddress"]["314"],
     ),
     NETWORK_CALIBRATION: ChainContracts(
         multicall3="0xcA11bde05977b3631167028862bE2a173976CA11",
@@ -64,6 +66,7 @@ CONTRACTS_BY_NETWORK: Dict[str, ChainContracts] = {
         sp_registry=ADDRESSES["serviceProviderRegistryAddress"]["314159"],
         session_key_registry=ADDRESSES["sessionKeyRegistryAddress"]["314159"],
         pdp_verifier=ADDRESSES["pdpVerifierAddress"]["314159"],
+        provider_id_set=ADDRESSES["providerIdSetAddress"]["314159"],
     ),
 }
 
