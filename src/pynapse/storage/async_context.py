@@ -701,12 +701,26 @@ class AsyncStorageContext:
         return await self._pdp.download_piece(piece_cid)
 
     async def has_piece(self, piece_cid: str) -> bool:
-        """Check if a piece exists on this provider asynchronously."""
+        """Check whether this dataset contains the given piece.
+
+        Verifies on-chain membership — an SP can still have the raw bytes
+        from an unrelated dataset, so we go to the PDPVerifier contract
+        instead of trusting the SP's ``find_piece`` response (cf.
+        FilOzone/synapse-sdk#655).
+        """
+        from web3 import AsyncWeb3
+
+        from pynapse.pdp.verifier import AsyncPDPVerifier
+
+        async_web3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(self._chain.rpc_url))
+        verifier = AsyncPDPVerifier(async_web3, self._chain)
         try:
-            await self._pdp.find_piece(piece_cid)
-            return True
+            ids = await verifier.find_piece_ids_by_cid(
+                self._data_set_id, piece_cid, start_piece_id=0, limit=1
+            )
         except Exception:
             return False
+        return len(ids) > 0
 
     async def wait_for_piece(self, piece_cid: str, timeout_seconds: int = 300) -> None:
         """Wait for a piece to be available on this provider asynchronously."""
