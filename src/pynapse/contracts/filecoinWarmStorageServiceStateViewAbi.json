@@ -17,6 +17,35 @@
         "name": "payer",
         "internalType": "address",
         "type": "address"
+      },
+      {
+        "name": "offset",
+        "internalType": "uint256",
+        "type": "uint256"
+      },
+      {
+        "name": "limit",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "name": "clientDataSets",
+    "outputs": [
+      {
+        "name": "dataSetIds",
+        "internalType": "uint256[]",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "payer",
+        "internalType": "address",
+        "type": "address"
       }
     ],
     "name": "clientDataSets",
@@ -163,6 +192,16 @@
         "name": "client",
         "internalType": "address",
         "type": "address"
+      },
+      {
+        "name": "offset",
+        "internalType": "uint256",
+        "type": "uint256"
+      },
+      {
+        "name": "limit",
+        "internalType": "uint256",
+        "type": "uint256"
       }
     ],
     "name": "getClientDataSets",
@@ -228,6 +267,101 @@
             "type": "uint256"
           }
         ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "client",
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "name": "getClientDataSets",
+    "outputs": [
+      {
+        "name": "infos",
+        "internalType": "struct FilecoinWarmStorageService.DataSetInfoView[]",
+        "type": "tuple[]",
+        "components": [
+          {
+            "name": "pdpRailId",
+            "internalType": "uint256",
+            "type": "uint256"
+          },
+          {
+            "name": "cacheMissRailId",
+            "internalType": "uint256",
+            "type": "uint256"
+          },
+          {
+            "name": "cdnRailId",
+            "internalType": "uint256",
+            "type": "uint256"
+          },
+          {
+            "name": "payer",
+            "internalType": "address",
+            "type": "address"
+          },
+          {
+            "name": "payee",
+            "internalType": "address",
+            "type": "address"
+          },
+          {
+            "name": "serviceProvider",
+            "internalType": "address",
+            "type": "address"
+          },
+          {
+            "name": "commissionBps",
+            "internalType": "uint256",
+            "type": "uint256"
+          },
+          {
+            "name": "clientDataSetId",
+            "internalType": "uint256",
+            "type": "uint256"
+          },
+          {
+            "name": "pdpEndEpoch",
+            "internalType": "uint256",
+            "type": "uint256"
+          },
+          {
+            "name": "providerId",
+            "internalType": "uint256",
+            "type": "uint256"
+          },
+          {
+            "name": "dataSetId",
+            "internalType": "uint256",
+            "type": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "payer",
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "name": "getClientDataSetsLength",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "uint256",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view"

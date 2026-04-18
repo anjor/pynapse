@@ -31,6 +31,11 @@
         "name": "_sessionKeyRegistry",
         "internalType": "contract SessionKeyRegistry",
         "type": "address"
+      },
+      {
+        "name": "_reinitializer_version",
+        "internalType": "uint64",
+        "type": "uint64"
       }
     ],
     "stateMutability": "nonpayable"
@@ -2230,6 +2235,22 @@
     "type": "error",
     "inputs": [
       {
+        "name": "index",
+        "internalType": "uint256",
+        "type": "uint256"
+      },
+      {
+        "name": "providerId",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "name": "ProviderIdMismatchAtIndex"
+  },
+  {
+    "type": "error",
+    "inputs": [
+      {
         "name": "providerId",
         "internalType": "uint256",
         "type": "uint256"
@@ -2316,6 +2337,11 @@
     "type": "error",
     "inputs": [],
     "name": "ServiceContractMustTerminateRail"
+  },
+  {
+    "type": "error",
+    "inputs": [],
+    "name": "StorageProviderChangesNotSupported"
   },
   {
     "type": "error",
