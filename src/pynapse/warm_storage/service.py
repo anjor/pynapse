@@ -64,9 +64,34 @@ class SyncWarmStorageService:
             data_set_id=int(info[10]),
         )
 
-    def get_client_data_sets(self, client_address: str) -> List[DataSetInfo]:
-        data_sets = self._view.functions.getClientDataSets(client_address).call()
+    def get_client_data_sets(
+        self, client_address: str, offset: int = 0, limit: int = 0
+    ) -> List[DataSetInfo]:
+        """Full dataset records for ``client_address``, optionally paginated.
+
+        Pass ``offset=0, limit=0`` (the defaults) for the full list. Uses the
+        view contract's paginated ``getClientDataSets`` overload under the
+        hood — match upstream ``getClientDataSets`` semantics.
+        """
+        data_sets = self._view.functions.getClientDataSets(
+            client_address, offset, limit
+        ).call()
         return [self.get_data_set(int(ds[10])) for ds in data_sets]
+
+    def get_client_data_set_ids(
+        self, client_address: str, offset: int = 0, limit: int = 0
+    ) -> List[int]:
+        """Dataset IDs for ``client_address``, optionally paginated."""
+        ids = self._view.functions.clientDataSets(
+            client_address, offset, limit
+        ).call()
+        return [int(data_set_id) for data_set_id in ids]
+
+    def get_client_data_sets_length(self, client_address: str) -> int:
+        """Total count of datasets owned by ``client_address``."""
+        return int(
+            self._view.functions.getClientDataSetsLength(client_address).call()
+        )
 
     def get_all_data_set_metadata(self, data_set_id: int) -> Dict[str, str]:
         entries = self._view.functions.getAllDataSetMetadata(data_set_id).call()
@@ -312,9 +337,29 @@ class AsyncWarmStorageService:
             data_set_id=int(info[10]),
         )
 
-    async def get_client_data_sets(self, client_address: str) -> List[DataSetInfo]:
-        data_sets = await self._view.functions.getClientDataSets(client_address).call()
+    async def get_client_data_sets(
+        self, client_address: str, offset: int = 0, limit: int = 0
+    ) -> List[DataSetInfo]:
+        """Full dataset records for ``client_address``, optionally paginated."""
+        data_sets = await self._view.functions.getClientDataSets(
+            client_address, offset, limit
+        ).call()
         return [await self.get_data_set(int(ds[10])) for ds in data_sets]
+
+    async def get_client_data_set_ids(
+        self, client_address: str, offset: int = 0, limit: int = 0
+    ) -> List[int]:
+        """Dataset IDs for ``client_address``, optionally paginated."""
+        ids = await self._view.functions.clientDataSets(
+            client_address, offset, limit
+        ).call()
+        return [int(data_set_id) for data_set_id in ids]
+
+    async def get_client_data_sets_length(self, client_address: str) -> int:
+        """Total count of datasets owned by ``client_address``."""
+        return int(
+            await self._view.functions.getClientDataSetsLength(client_address).call()
+        )
 
     async def get_all_data_set_metadata(self, data_set_id: int) -> Dict[str, str]:
         entries = await self._view.functions.getAllDataSetMetadata(data_set_id).call()
