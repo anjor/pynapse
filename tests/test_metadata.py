@@ -14,6 +14,6 @@ def test_combine_metadata_with_cdn():
 
 
 def test_combine_metadata_no_override():
-    base = {METADATA_KEYS["WITH_CDN"]: ""}
+    base = {METADATA_KEYS["WITH_CDN"]: "existing"}
     combined = combine_metadata(base, with_cdn=True)
-    assert combined is base
+    assert combined == base

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict
+from typing import Dict, Optional
 
 from .constants import METADATA_KEYS
 
@@ -16,15 +16,25 @@ def metadata_matches(data_set_metadata: Dict[str, str], requested_metadata: Dict
     return True
 
 
-def combine_metadata(metadata: Dict[str, str] | None = None, with_cdn: bool | None = None) -> Dict[str, str]:
-    metadata = metadata or {}
-    if with_cdn is None or METADATA_KEYS["WITH_CDN"] in metadata:
-        return metadata
-    if with_cdn:
-        combined = dict(metadata)
-        combined[METADATA_KEYS["WITH_CDN"]] = ""
-        return combined
-    return metadata
+def combine_metadata(
+    metadata: Dict[str, str] | None = None,
+    with_cdn: bool | None = None,
+    source: Optional[str] = None,
+) -> Dict[str, str]:
+    """Combine user metadata with SDK-managed keys (``withCDN``, ``source``).
+
+    Each managed key is added only when its option is active AND the key is
+    not already present in ``metadata`` — explicit user metadata wins.
+    """
+    result = dict(metadata or {})
+
+    if with_cdn and METADATA_KEYS["WITH_CDN"] not in result:
+        result[METADATA_KEYS["WITH_CDN"]] = ""
+
+    if source and METADATA_KEYS["SOURCE"] not in result:
+        result[METADATA_KEYS["SOURCE"]] = source
+
+    return result
 
 
 def metadata_array_to_object(entries: list[tuple[str, str]]) -> Dict[str, str]:

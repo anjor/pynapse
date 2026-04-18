@@ -9,6 +9,7 @@ METADATA_KEYS = {
     "WITH_CDN": "withCDN",
     "WITH_IPFS_INDEXING": "withIPFSIndexing",
     "IPFS_ROOT_CID": "ipfsRootCID",
+    "SOURCE": "source",
 }
 
 TIMING_CONSTANTS = {

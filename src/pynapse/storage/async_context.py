@@ -56,6 +56,9 @@ class AsyncStorageContextOptions:
     force_create_data_set: bool = False
     metadata: Optional[Dict[str, str]] = None
     exclude_provider_ids: Optional[List[int]] = None
+    # Application identifier for dataset namespace isolation. When set, only
+    # datasets with a matching ``source`` metadata value are reused.
+    source: Optional[str] = None
     # Async callbacks
     on_provider_selected: Optional[Callable[["ProviderInfo"], Awaitable[None]]] = None
     on_data_set_resolved: Optional[Callable[[dict], Awaitable[None]]] = None
@@ -159,7 +162,9 @@ class AsyncStorageContext:
         client_address = acct.address
         
         options = options or AsyncStorageContextOptions()
-        requested_metadata = combine_metadata(options.metadata, options.with_cdn)
+        requested_metadata = combine_metadata(
+            options.metadata, options.with_cdn, options.source
+        )
         
         # Resolve provider and dataset
         resolution = await cls._resolve_provider_and_data_set(
