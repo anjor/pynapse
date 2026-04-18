@@ -794,6 +794,22 @@
     "type": "error",
     "inputs": [
       {
+        "name": "index",
+        "internalType": "uint256",
+        "type": "uint256"
+      },
+      {
+        "name": "providerId",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "name": "ProviderIdMismatchAtIndex"
+  },
+  {
+    "type": "error",
+    "inputs": [
+      {
         "name": "providerId",
         "internalType": "uint256",
         "type": "uint256"
@@ -891,6 +907,11 @@
     "type": "error",
     "inputs": [],
     "name": "ServiceContractMustTerminateRail"
+  },
+  {
+    "type": "error",
+    "inputs": [],
+    "name": "StorageProviderChangesNotSupported"
   },
   {
     "type": "error",

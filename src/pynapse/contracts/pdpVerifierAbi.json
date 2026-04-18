@@ -1,8 +1,42 @@
 [
   {
     "type": "constructor",
-    "inputs": [],
+    "inputs": [
+      {
+        "name": "_initializerVersion",
+        "internalType": "uint64",
+        "type": "uint64"
+      },
+      {
+        "name": "_usdfcTokenAddress",
+        "internalType": "address",
+        "type": "address"
+      },
+      {
+        "name": "_usdfcSybilFee",
+        "internalType": "uint256",
+        "type": "uint256"
+      },
+      {
+        "name": "_paymentsContractAddress",
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "inputs": [],
+    "name": "FIL_SYBIL_FEE",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "pure"
   },
   {
     "type": "function",
@@ -59,12 +93,51 @@
   {
     "type": "function",
     "inputs": [],
+    "name": "PAYMENTS_CONTRACT_ADDRESS",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [],
     "name": "UPGRADE_INTERFACE_VERSION",
     "outputs": [
       {
         "name": "",
         "internalType": "string",
         "type": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [],
+    "name": "USDFC_SYBIL_FEE",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [],
+    "name": "USDFC_TOKEN_ADDRESS",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "address",
+        "type": "address"
       }
     ],
     "stateMutability": "view"
@@ -122,6 +195,31 @@
       }
     ],
     "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "plannedUpgrade",
+        "internalType": "struct PDPVerifier.PlannedUpgrade",
+        "type": "tuple",
+        "components": [
+          {
+            "name": "nextImplementation",
+            "internalType": "address",
+            "type": "address"
+          },
+          {
+            "name": "afterEpoch",
+            "internalType": "uint96",
+            "type": "uint96"
+          }
+        ]
+      }
+    ],
+    "name": "announcePlannedUpgrade",
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -309,6 +407,47 @@
         "name": "setId",
         "internalType": "uint256",
         "type": "uint256"
+      },
+      {
+        "name": "pieceCid",
+        "internalType": "struct Cids.Cid",
+        "type": "tuple",
+        "components": [
+          {
+            "name": "data",
+            "internalType": "bytes",
+            "type": "bytes"
+          }
+        ]
+      },
+      {
+        "name": "startPieceId",
+        "internalType": "uint256",
+        "type": "uint256"
+      },
+      {
+        "name": "limit",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "name": "findPieceIdsByCid",
+    "outputs": [
+      {
+        "name": "pieceIds",
+        "internalType": "uint256[]",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "setId",
+        "internalType": "uint256",
+        "type": "uint256"
       }
     ],
     "name": "getActivePieceCount",
@@ -341,6 +480,52 @@
       }
     ],
     "name": "getActivePieces",
+    "outputs": [
+      {
+        "name": "pieces",
+        "internalType": "struct Cids.Cid[]",
+        "type": "tuple[]",
+        "components": [
+          {
+            "name": "data",
+            "internalType": "bytes",
+            "type": "bytes"
+          }
+        ]
+      },
+      {
+        "name": "pieceIds",
+        "internalType": "uint256[]",
+        "type": "uint256[]"
+      },
+      {
+        "name": "hasMore",
+        "internalType": "bool",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "setId",
+        "internalType": "uint256",
+        "type": "uint256"
+      },
+      {
+        "name": "startPieceId",
+        "internalType": "uint256",
+        "type": "uint256"
+      },
+      {
+        "name": "limit",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "name": "getActivePiecesByCursor",
     "outputs": [
       {
         "name": "pieces",
@@ -666,6 +851,24 @@
     "name": "nextProvingPeriod",
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "inputs": [],
+    "name": "nextUpgrade",
+    "outputs": [
+      {
+        "name": "nextImplementation",
+        "internalType": "address",
+        "type": "address"
+      },
+      {
+        "name": "afterEpoch",
+        "internalType": "uint96",
+        "type": "uint96"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -1159,6 +1362,31 @@
     "anonymous": false,
     "inputs": [
       {
+        "name": "plannedUpgrade",
+        "internalType": "struct PDPVerifier.PlannedUpgrade",
+        "type": "tuple",
+        "components": [
+          {
+            "name": "nextImplementation",
+            "internalType": "address",
+            "type": "address"
+          },
+          {
+            "name": "afterEpoch",
+            "internalType": "uint96",
+            "type": "uint96"
+          }
+        ],
+        "indexed": false
+      }
+    ],
+    "name": "UpgradeAnnounced"
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "inputs": [
+      {
         "name": "implementation",
         "internalType": "address",
         "type": "address",
@@ -1198,6 +1426,11 @@
     "type": "error",
     "inputs": [],
     "name": "FailedCall"
+  },
+  {
+    "type": "error",
+    "inputs": [],
+    "name": "FilRefundFailed"
   },
   {
     "type": "error",
@@ -1262,5 +1495,10 @@
       }
     ],
     "name": "UUPSUnsupportedProxiableUUID"
+  },
+  {
+    "type": "error",
+    "inputs": [],
+    "name": "UsdfcSybilFeeNotMet"
   }
 ]
