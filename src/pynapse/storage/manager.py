@@ -106,20 +106,27 @@ class StorageManager:
     """
     
     def __init__(
-        self, 
-        chain, 
+        self,
+        chain,
         private_key: str,
         sp_registry=None,
         warm_storage=None,
         retriever=None,
+        source: Optional[str] = None,
     ) -> None:
         self._chain = chain
         self._private_key = private_key
         self._sp_registry = sp_registry
         self._warm_storage = warm_storage
         self._retriever = retriever
+        self._source = source
         self._default_context: Optional[StorageContext] = None
         self._context_cache: Dict[int, StorageContext] = {}  # provider_id -> context
+
+    @property
+    def source(self) -> Optional[str]:
+        """Application identifier for dataset namespace isolation."""
+        return self._source
 
     def create_context(
         self, 
@@ -149,6 +156,7 @@ class StorageManager:
         force_create_data_set: bool = False,
         metadata: Optional[Dict[str, str]] = None,
         exclude_provider_ids: Optional[List[int]] = None,
+        source: Optional[str] = None,
         on_provider_selected: Optional[Callable] = None,
         on_data_set_resolved: Optional[Callable] = None,
     ) -> StorageContext:
@@ -186,13 +194,15 @@ class StorageManager:
             and self._default_context is not None
         )
         
+        effective_source = source if source is not None else self._source
+
         if can_use_default:
             # Check if metadata matches
             from pynapse.utils.metadata import combine_metadata, metadata_matches
-            requested_metadata = combine_metadata(metadata, with_cdn)
+            requested_metadata = combine_metadata(metadata, with_cdn, effective_source)
             if metadata_matches(self._default_context.data_set_metadata, requested_metadata):
                 return self._default_context
-        
+
         # Create new context using factory method
         options = StorageContextOptions(
             provider_id=provider_id,
@@ -202,6 +212,7 @@ class StorageManager:
             force_create_data_set=force_create_data_set,
             metadata=metadata,
             exclude_provider_ids=exclude_provider_ids,
+            source=effective_source,
             on_provider_selected=on_provider_selected,
             on_data_set_resolved=on_data_set_resolved,
         )
@@ -227,6 +238,7 @@ class StorageManager:
         force_create_data_set: bool = False,
         metadata: Optional[Dict[str, str]] = None,
         exclude_provider_ids: Optional[List[int]] = None,
+        source: Optional[str] = None,
         on_provider_selected: Optional[Callable] = None,
         on_data_set_resolved: Optional[Callable] = None,
     ) -> List[StorageContext]:
@@ -250,15 +262,17 @@ class StorageManager:
         if self._sp_registry is None:
             raise ValueError("sp_registry required for smart context creation")
         
+        effective_source = source if source is not None else self._source
         options = StorageContextOptions(
             with_cdn=with_cdn,
             force_create_data_set=force_create_data_set,
             metadata=metadata,
             exclude_provider_ids=exclude_provider_ids,
+            source=effective_source,
             on_provider_selected=on_provider_selected,
             on_data_set_resolved=on_data_set_resolved,
         )
-        
+
         return StorageContext.create_contexts(
             chain=self._chain,
             private_key=self._private_key,
