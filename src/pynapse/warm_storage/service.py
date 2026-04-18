@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 from eth_account import Account
 from web3 import AsyncWeb3, Web3
 
-from pynapse.contracts import FWSS_ABI, FWSS_VIEW_ABI
+from pynapse.contracts import FWSS_ABI, FWSS_VIEW_ABI, PROVIDER_ID_SET_ABI
 from pynapse.core.chains import Chain
 
 
@@ -42,6 +42,9 @@ class SyncWarmStorageService:
         self._private_key = private_key
         self._fwss = web3.eth.contract(address=chain.contracts.warm_storage, abi=FWSS_ABI)
         self._view = web3.eth.contract(address=chain.contracts.warm_storage_state_view, abi=FWSS_VIEW_ABI)
+        self._endorsements = web3.eth.contract(
+            address=chain.contracts.provider_id_set, abi=PROVIDER_ID_SET_ABI
+        )
 
     def get_data_set(self, data_set_id: int) -> DataSetInfo:
         info = self._view.functions.getDataSet(data_set_id).call()
@@ -111,23 +114,34 @@ class SyncWarmStorageService:
     def proving_deadline(self, data_set_id: int) -> int:
         return int(self._view.functions.provingDeadline(data_set_id).call())
 
-    def get_approved_providers(self, offset: int = 0, limit: int = 0) -> List[int]:
-        """
-        Get approved provider IDs with optional pagination.
-        
-        Args:
-            offset: Starting index (0-based). Use 0 to start from beginning.
-            limit: Maximum number of providers to return. Use 0 to get all remaining providers.
-            
-        Returns:
-            List of approved provider IDs.
+    def get_approved_provider_ids(self, offset: int = 0, limit: int = 0) -> List[int]:
+        """Approved provider IDs, optionally paginated.
+
+        Mirrors upstream ``getApprovedProviderIds``. Pass ``offset=0, limit=0``
+        (the defaults) to get the full list.
         """
         providers = self._view.functions.getApprovedProviders(offset, limit).call()
         return [int(pid) for pid in providers]
 
     def get_approved_providers_length(self) -> int:
-        """Get the total count of approved providers."""
+        """Total count of approved providers."""
         return int(self._view.functions.getApprovedProvidersLength().call())
+
+    def get_endorsed_provider_ids(self) -> List[int]:
+        """Endorsed provider IDs from the ProviderIdSet contract.
+
+        Mirrors upstream ``getEndorsedProviderIds``. Deduplicates results — the
+        underlying set may return the same ID multiple times.
+        """
+        ids = self._endorsements.functions.getProviderIds().call()
+        seen: List[int] = []
+        visited: set[int] = set()
+        for pid in ids:
+            value = int(pid)
+            if value not in visited:
+                visited.add(value)
+                seen.append(value)
+        return seen
 
     def is_provider_approved(self, provider_id: int) -> bool:
         """Check if a provider is approved for the warm storage service."""
@@ -158,11 +172,6 @@ class SyncWarmStorageService:
         signed = self._web3.eth.account.sign_transaction(txn, private_key=self._private_key)
         tx_hash = self._web3.eth.send_raw_transaction(signed.rawTransaction)
         return tx_hash.hex()
-
-    def get_approved_provider_ids(self) -> List[int]:
-        """Get list of all approved provider IDs for the warm storage service."""
-        # Use the view contract's getApprovedProviders with offset=0, limit=0 to get all
-        return self.get_approved_providers(offset=0, limit=0)
 
     def get_active_piece_count(self, data_set_id: int) -> int:
         """Get count of active pieces in a dataset (excludes removed pieces)."""
@@ -281,6 +290,9 @@ class AsyncWarmStorageService:
         self._private_key = private_key
         self._fwss = web3.eth.contract(address=chain.contracts.warm_storage, abi=FWSS_ABI)
         self._view = web3.eth.contract(address=chain.contracts.warm_storage_state_view, abi=FWSS_VIEW_ABI)
+        self._endorsements = web3.eth.contract(
+            address=chain.contracts.provider_id_set, abi=PROVIDER_ID_SET_ABI
+        )
 
     async def get_data_set(self, data_set_id: int) -> DataSetInfo:
         info = await self._view.functions.getDataSet(data_set_id).call()
@@ -350,23 +362,34 @@ class AsyncWarmStorageService:
     async def proving_deadline(self, data_set_id: int) -> int:
         return int(await self._view.functions.provingDeadline(data_set_id).call())
 
-    async def get_approved_providers(self, offset: int = 0, limit: int = 0) -> List[int]:
-        """
-        Get approved provider IDs with optional pagination.
-        
-        Args:
-            offset: Starting index (0-based). Use 0 to start from beginning.
-            limit: Maximum number of providers to return. Use 0 to get all remaining providers.
-            
-        Returns:
-            List of approved provider IDs.
+    async def get_approved_provider_ids(self, offset: int = 0, limit: int = 0) -> List[int]:
+        """Approved provider IDs, optionally paginated.
+
+        Mirrors upstream ``getApprovedProviderIds``. Pass ``offset=0, limit=0``
+        (the defaults) to get the full list.
         """
         providers = await self._view.functions.getApprovedProviders(offset, limit).call()
         return [int(pid) for pid in providers]
 
     async def get_approved_providers_length(self) -> int:
-        """Get the total count of approved providers."""
+        """Total count of approved providers."""
         return int(await self._view.functions.getApprovedProvidersLength().call())
+
+    async def get_endorsed_provider_ids(self) -> List[int]:
+        """Endorsed provider IDs from the ProviderIdSet contract.
+
+        Mirrors upstream ``getEndorsedProviderIds``. Deduplicates results — the
+        underlying set may return the same ID multiple times.
+        """
+        ids = await self._endorsements.functions.getProviderIds().call()
+        seen: List[int] = []
+        visited: set[int] = set()
+        for pid in ids:
+            value = int(pid)
+            if value not in visited:
+                visited.add(value)
+                seen.append(value)
+        return seen
 
     async def is_provider_approved(self, provider_id: int) -> bool:
         """Check if a provider is approved for the warm storage service."""
@@ -397,11 +420,6 @@ class AsyncWarmStorageService:
         signed = Account.sign_transaction(txn, private_key=self._private_key)
         tx_hash = await self._web3.eth.send_raw_transaction(signed.rawTransaction)
         return tx_hash.hex()
-
-    async def get_approved_provider_ids(self) -> List[int]:
-        """Get list of all approved provider IDs for the warm storage service."""
-        # Use the view contract's getApprovedProviders with offset=0, limit=0 to get all
-        return await self.get_approved_providers(offset=0, limit=0)
 
     async def get_active_piece_count(self, data_set_id: int) -> int:
         """Get count of active pieces in a dataset (excludes removed pieces)."""
