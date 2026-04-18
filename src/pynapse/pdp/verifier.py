@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from typing import List
+
 from web3 import AsyncWeb3, Web3
 
 from pynapse.contracts import PDP_VERIFIER_ABI
 from pynapse.core.chains import Chain
+from pynapse.core.typed_data import _piece_cid_bytes
 
 
 class SyncPDPVerifier:
@@ -20,6 +23,24 @@ class SyncPDPVerifier:
 
     def get_active_pieces(self, data_set_id: int, offset: int, limit: int):
         return self._contract.functions.getActivePieces(data_set_id, offset, limit).call()
+
+    def find_piece_ids_by_cid(
+        self,
+        data_set_id: int,
+        piece_cid: str,
+        start_piece_id: int = 0,
+        limit: int = 1,
+    ) -> List[int]:
+        """Direct on-chain CID→piece-id lookup.
+
+        Mirrors the upstream ``findPieceIdsByCid`` helper — replaces an
+        O(n) scan through ``getActivePieces``.
+        """
+        cid_tuple = (_piece_cid_bytes(piece_cid),)
+        ids = self._contract.functions.findPieceIdsByCid(
+            data_set_id, cid_tuple, start_piece_id, limit
+        ).call()
+        return [int(pid) for pid in ids]
 
     def get_data_set_leaf_count(self, data_set_id: int) -> int:
         return int(self._contract.functions.getDataSetLeafCount(data_set_id).call())
@@ -58,6 +79,24 @@ class AsyncPDPVerifier:
 
     async def get_active_pieces(self, data_set_id: int, offset: int, limit: int):
         return await self._contract.functions.getActivePieces(data_set_id, offset, limit).call()
+
+    async def find_piece_ids_by_cid(
+        self,
+        data_set_id: int,
+        piece_cid: str,
+        start_piece_id: int = 0,
+        limit: int = 1,
+    ) -> List[int]:
+        """Direct on-chain CID→piece-id lookup.
+
+        Mirrors the upstream ``findPieceIdsByCid`` helper — replaces an
+        O(n) scan through ``getActivePieces``.
+        """
+        cid_tuple = (_piece_cid_bytes(piece_cid),)
+        ids = await self._contract.functions.findPieceIdsByCid(
+            data_set_id, cid_tuple, start_piece_id, limit
+        ).call()
+        return [int(pid) for pid in ids]
 
     async def get_data_set_leaf_count(self, data_set_id: int) -> int:
         return int(await self._contract.functions.getDataSetLeafCount(data_set_id).call())
