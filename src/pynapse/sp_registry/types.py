@@ -41,6 +41,17 @@ class PDPOffering:
     ipni_piece: bool = False
     ipni_ipfs: bool = False
     ipni_peer_id: Optional[str] = None
+    # Non-standard capabilities returned by the SP. Preserved so downstream
+    # consumers can read SP-specific signals (e.g. "serviceStatus"). Mirrors
+    # FilOzone/synapse-sdk#687.
+    extra_capabilities: Dict[str, str] = None  # type: ignore[assignment]
+
+    def __post_init__(self) -> None:
+        if self.extra_capabilities is None:
+            # Use field default cautiously — dataclass doesn't allow dict
+            # factories when mixing with inherited fields downstream; set
+            # here instead.
+            object.__setattr__(self, "extra_capabilities", {})
 
 
 @dataclass

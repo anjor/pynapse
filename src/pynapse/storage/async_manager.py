@@ -119,6 +119,7 @@ class AsyncStorageManager:
         warm_storage: Optional["AsyncWarmStorageService"] = None,
         retriever: Optional["AsyncChainRetriever"] = None,
         source: Optional[str] = None,
+        with_cdn: bool = False,
     ) -> None:
         self._chain = chain
         self._private_key = private_key
@@ -126,6 +127,7 @@ class AsyncStorageManager:
         self._warm_storage = warm_storage
         self._retriever = retriever
         self._source = source
+        self._with_cdn = with_cdn
         self._default_context: Optional[AsyncStorageContext] = None
         self._context_cache: Dict[int, AsyncStorageContext] = {}  # provider_id -> context
 
@@ -133,6 +135,11 @@ class AsyncStorageManager:
     def source(self) -> Optional[str]:
         """Application identifier for dataset namespace isolation."""
         return self._source
+
+    @property
+    def with_cdn(self) -> bool:
+        """Default ``withCDN`` flag used when a per-call value isn't given."""
+        return self._with_cdn
 
     def create_context(
         self, 
