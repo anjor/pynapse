@@ -699,12 +699,33 @@ class StorageContext:
         return self._pdp.download_piece(piece_cid)
 
     def has_piece(self, piece_cid: str) -> bool:
-        """Check if a piece exists on this provider."""
+        """Check whether this dataset contains the given piece.
+
+        Verifies on-chain membership — an SP can still have the raw bytes
+        from an unrelated dataset, so we go to the PDPVerifier contract
+        instead of trusting the SP's ``find_piece`` response (cf.
+        FilOzone/synapse-sdk#655).
+        """
+        from pynapse.pdp.verifier import SyncPDPVerifier
+
+        verifier = SyncPDPVerifier(self._chain_web3(), self._chain)
         try:
-            self._pdp.find_piece(piece_cid)
-            return True
+            ids = verifier.find_piece_ids_by_cid(
+                self._data_set_id, piece_cid, start_piece_id=0, limit=1
+            )
         except Exception:
             return False
+        return len(ids) > 0
+
+    def _chain_web3(self):
+        """Return a Web3 client for on-chain reads.
+
+        StorageContext stores a ``Chain`` but not the Web3 client directly,
+        so we build one on demand from the chain's RPC URL.
+        """
+        from web3 import Web3
+
+        return Web3(Web3.HTTPProvider(self._chain.rpc_url))
 
     def wait_for_piece(self, piece_cid: str, timeout_seconds: int = 300) -> None:
         """Wait for a piece to be available on this provider."""
