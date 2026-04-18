@@ -49,6 +49,17 @@ SESSION_KEY_PERMISSIONS: Dict[SessionKeyPermission, str] = {
     "DeleteDataSet": type_hash("DeleteDataSet"),
 }
 
+# EIP-712 type hashes — mirrors the tagged permission constants introduced
+# in FilOzone/synapse-sdk#618. Useful when comparing against raw hashes
+# returned by the SessionKeyRegistry contract.
+CREATE_DATA_SET_PERMISSION = SESSION_KEY_PERMISSIONS["CreateDataSet"]
+ADD_PIECES_PERMISSION = SESSION_KEY_PERMISSIONS["AddPieces"]
+SCHEDULE_PIECE_REMOVALS_PERMISSION = SESSION_KEY_PERMISSIONS["SchedulePieceRemovals"]
+DELETE_DATA_SET_PERMISSION = SESSION_KEY_PERMISSIONS["DeleteDataSet"]
+
+# The set of permissions FWSS requires for full dataset lifecycle operations.
+DEFAULT_FWSS_PERMISSIONS: List[SessionKeyPermission] = list(ALL_PERMISSIONS)
+
 
 def get_permission_from_type_hash(type_hash_value: str) -> SessionKeyPermission:
     for perm, h in SESSION_KEY_PERMISSIONS.items():
